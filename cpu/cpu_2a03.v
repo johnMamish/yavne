@@ -34,11 +34,11 @@
 
 /////////////////// ALU opcodes
 // these decide what gets put on the output of the ALU
-`define ALU_OP_OR 'b0
-`define ALU_OP_AND 'b1
-`define ALU_OP_EOR 'b2
-`define ALU_OP_ADC 'b3
-
+`define ALU_OP_OR  'b0
+`define ALU_OP_AND 'b001
+`define ALU_OP_EOR 'b010
+`define ALU_OP_ADC 'b011
+`define ALU_OP_NOP 'b100
 
 /////////////////// ALU operand2 source
 `define ALU_OP2_SRC_DATA_BUS  2'b0
@@ -95,9 +95,9 @@ module control_rom(input wire [7:0] instr,
                    output reg [1:0] alu_op2_src,
                    output reg [1:0] cyc_count_control);
 
-   wire aaa[2:0] = instr[7:5];
-   wire bbb[2:0] = instr[4:2];
-   wire cc[1:0]  = instr[1:0];
+   wire [2:0] aaa = instr[7:5];
+   wire [2:0] bbb = instr[4:2];
+   wire [1:0] cc  = instr[1:0];
 
    always @ *
      begin
@@ -244,47 +244,82 @@ endmodule
  */
 module cpu_2a03(input clock,
                 input  nreset,
-                output addr[15:0],
-                inout  data[7:0],
+                output [15:0] addr,
+                inout  [7:0] data,
                 output rw,
                 input  nnmi,
                 input  nirq,
                 output naddr4016r,
                 output naddr4017r,
-                output addr4016w[2:0]);
+                output [2:0] addr4016w);
 
    // ======= user facing registers =======
    // program counter
-   reg PC[15:0];
+   reg [15:0] PC;
 
    // stack pointer
-   reg SP[7:0];
+   reg [7:0] SP;
 
    // accumulator
-   reg A[7:0];
+   reg [7:0] A;
 
    // index registers
-   reg X[7:0];
-   reg Y[7:0];
+   reg [7:0] X;
+   reg [7:0] Y;
 
-   // ======= internal registers =======
+   //////////////// internal registers
    // current instruction
-   reg instr[7:0];
+   reg [7:0] instr;
 
    // input data latch
-   reg IDL[15:0];
+   reg [15:0] IDL;
 
    // output data latch, TODO: need to make sure tristate works
-   reg ODL[7:0];
+   reg [7:0] ODL;
 
-   reg cyc_count[2:0];
+   reg [2:0] cyc_count;
 
-   // current instruction + current cycle give "micro-op" control signals.
-   wire micro_op[3:0];
+   //////////////// control rom
+   wire [2:0] pc_src;
+   wire [1:0] idl_low_src;
+   wire [1:0] idl_hi_src;
+   wire [1:0] accum_src;
+   wire [2:0] addr_bus_src;
+   wire [2:0] alu_op;
+   wire [1:0] alu_op2_src;
+   wire [1:0] cyc_count_control;
+   control_rom cr(.instr(instr),
+                  .cyc_count(cyc_count),
+                  .rw(rw),
+                  .idl_low_src(idl_low_src),
+                  .idl_hi_srw(idl_hi_src),
+                  .accum_src(accum_src),
+                  .alu_op(alu_op),
+                  .alu_op2_src(alu_op2_src),
+                  .cyc_count_control(cyc_count_control));
 
-   control_rom cr(instr, cyc_count, micro_op);
+   //////////////// ALU
+   // TODO: carry logic
+   // TODO: flags register
+   wire [7:0] alu_out;
+   always @ *
+     begin
+        wire [7:0] alu_op2;
+        case(alu_op2)
+          ALU_OP2_SRC_DATA_BUS: alu_op2 = data;
+          ALU_OP2_SRC_IDL_LOW:  alu_op2 = IDL[7:0];
+        endcase
 
-   // TODO: mux for address bus
+        case(alu_op)
+          ALU_OP_NOP: alu_out = 8{1'b0};
+          ALU_OP_OR:  alu_out = A | alu_op2;
+          ALU_OP_AND: alu_out = A & alu_op2;
+          ALU_OP_EOR: alu_out = A ^ alu_op2;
+          ALU_OP_ADC: alu_out = A + alu_op2;
+        endcase
+     end
+
+   //////////////// mux for address bus
    always @ *
      begin
         case(addr_bus_src)
@@ -295,17 +330,45 @@ module cpu_2a03(input clock,
         endcase
      end
 
+   //////////////// internal logic update
    always @ (posedge clock)
      begin
      if (nreset)
        begin
           // update accumulator
           case(accum_src)
+            ACCUM_SRC_ACCUMHOLD:   A <= A;
+            ACCUM_SRC_ALU:         A <= alu_out;
+          endcase
+
+          // update internal data latch
+          case(idl_low_src)
+            IDL_LOW_SRC_IDL_LOW:  IDL[7:0] <= IDL[7:0];
+            IDL_LOW_SRC_DATA_BUS: IDL[7:0] <= data[7:0];
+          endcase
+          case(idl_hi_src)
+            IDL_HI_SRC_IDL_HI:   IDL[15:8] <= IDL[15:8];
+            IDL_HI_SRC_DATA_BUS: IDL[15:8] <= data[7:0];
+          endcase
+
+          // update accumulator
+          case(accum_src)
             ACCUM_SRC_ACCUMHOLD: A <= A;
             ACCUM_SRC_ALU:       A <= alu_out;
           endcase
 
-          // update
+          // update program counter
+          case(pc_src)
+            PC_SRC_PC:        PC <= PC;
+            PR_SRC_PC_PLUS1:  PC <= PC + 1;
+          endcase
+
+          // update cycle count
+          case(cyc_count)
+            CYC_COUNT_INCR:   cyc_count <= cyc_count + 1;
+            CYC_COUNT_RESET:  cyc_count <= 'b0;
+            CYC_COUNT_SET1:   cyc_count <= 'b1;
+          endcase
        end
      else
        begin
