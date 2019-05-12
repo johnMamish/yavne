@@ -1,7 +1,5 @@
 module SPIbs(input clock,
-             input reset,
-             //how much we divide by
-             input wire [3:0] divider,
+             input reset, 
              // input byte valid
              input wire ib_v, 
              // input byte value
@@ -11,7 +9,6 @@ module SPIbs(input clock,
              output wire byte_ready,
              output wire sclk,
              output wire mosi,
-             output wire ss,
              input wire miso
              );
 
@@ -20,23 +17,23 @@ module SPIbs(input clock,
    
    
   
-    assign sclk = ib_v & divclk;
-    assign byte_ready = (sc == 4'd7) & sclk;
+    assign sclk = divclk & ib_v;
+    assign byte_ready = (sc == 4'd7) & divcnt[3] & ~(|divcnt[2:0]);
     reg [7:0] wb; 
-    reg [3:0] state, next_state;
+    
     reg [6:0] divcnt;
     reg [3:0] sc;
-	 reg [7:0] rb;
-	 reg tr;
+	reg [7:0] rb;
+	reg tr;
     wire divclk;
 
-    assign divclk = divcnt[divider];
-    assign ss = ib_v;
+    assign divclk = divcnt[3];
+   
     assign mosi = wb[0];
     assign rb_o = {rb[6:0], tr};
 
 
-    always @(posedge clock) begin
+    always @(posedge clock or posedge reset) begin
 
         if (reset) begin
             divcnt <= 0;
