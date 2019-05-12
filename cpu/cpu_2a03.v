@@ -289,7 +289,6 @@ module cpu_2a03(input clock,
 
    // output data latch, TODO: need to make sure tristate works
    reg [7:0] ODL;
-
    reg [2:0] cyc_count;
 
    //////////////// control rom
@@ -387,8 +386,8 @@ module cpu_2a03(input clock,
           endcase
 
           // update cycle count
-          case(cyc_count)
-            `CYC_COUNT_INCR:   cyc_count <= cyc_count + 3'b001;
+          case(cyc_count_control)
+            `CYC_COUNT_INCR:   cyc_count <= cyc_count + 1;
             `CYC_COUNT_RESET:  cyc_count <= 3'b000;
             `CYC_COUNT_SET1:   cyc_count <= 3'b001;
           endcase
