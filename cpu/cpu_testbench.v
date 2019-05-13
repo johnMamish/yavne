@@ -34,7 +34,7 @@ module cpu_testbench();
    wire [7:0]  data_from_mem;
    wire rw;
 
-   assign bidir = (rw == 1'b0)? 8'hZZ : data_from_mem;
+   assign bidir = (rw == 1'b0)? 8'hzz : data_from_mem;
 
    cpu_2a03 cpu(.clock(clock),
                 .nreset(nreset),
@@ -55,8 +55,12 @@ module cpu_testbench();
         #500; clock = ~clock;
      end
 
+   integer i;
    initial
      begin
+        // initialize memory
+        for (i = 0; i <= 65536; i = i + 1)
+          memory.memory[i] = 'h0;
         clock = 1'b0;
 
         $dumpfile("cpu_testbench.vcd");

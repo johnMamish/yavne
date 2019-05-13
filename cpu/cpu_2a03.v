@@ -1,3 +1,4 @@
+`timescale 1ns/100ps
 
 ///////////////////////////////////////////////////////////////////
 // Defines for internal control signals coming from control ROM
@@ -19,9 +20,15 @@
 `define ADDR_BUS_SRC_SP 3'h3
 
 
+/////////////////// data bus
+`define DATA_BUS_SRC_NONE 2'h0
+`define DATA_BUS_SRC_ACCUM 2'h1
+`define DATA_BUS_SRC_X 2'h2
+`define DATA_BUS_SRC_Y 2'h3
+
 /////////////////// instruction register
-`define INSTR_REG_SRC_INSTR_REG 1'h0
-`define INSTR_REG_SRC_DATA_BUS 1'h1
+`define INSTR_REG_SRC_INSTR_REG 2'h0
+`define INSTR_REG_SRC_DATA_BUS 2'h1
 
 
 /////////////////// A register
@@ -39,11 +46,15 @@
 
 /////////////////// ALU opcodes
 // these decide what gets put on the output of the ALU
-`define ALU_OP_OR  'b0
-`define ALU_OP_AND 'b001
-`define ALU_OP_EOR 'b010
-`define ALU_OP_ADC 'b011
-`define ALU_OP_NOP 'b100
+`define ALU_OP_OR  4'h0
+`define ALU_OP_AND 4'h1
+`define ALU_OP_EOR 4'h2
+`define ALU_OP_ADC 4'h3
+`define ALU_OP_STA 4'h4         // sta operation: alu output don't care
+`define ALU_OP_FWD_OP2 4'h5     // alu_output <= alu_op2
+`define ALU_OP_CMP 4'h6
+`define ALU_OP_SBC 4'h7
+`define ALU_OP_NOP 4'h8
 
 /////////////////// ALU operand2 source
 `define ALU_OP2_SRC_DATA_BUS  2'b0
@@ -54,9 +65,9 @@
 `define RW_READ  1'b1
 
 
-`define CYC_COUNT_INCR  1'h0
-`define CYC_COUNT_RESET 1'h1
-`define CYC_COUNT_SET1  1'h2
+`define CYC_COUNT_INCR  2'h0
+`define CYC_COUNT_RESET 2'h1
+`define CYC_COUNT_SET1  2'h2
 
 
 `ifdef NOTDEFINED
@@ -72,8 +83,16 @@ alu_op2_src = `ALU_OP2_SRC_DATA_BUS;
 cyc_count_control = `CYC_COUNT_INCR;
 `endif
 
-`define CONTROL_ROM_BUNDLE  {rw, pc_src, accum_src, addr_bus_src, alu_op, cyc_count_control}
+/////////////////// "predefined" micro-ops
+`define CONTROL_ROM_BUNDLE  {rw, pc_src, instr_reg_src, idl_low_src, idl_hi_src,\
+                             accum_src, addr_bus_src, data_bus_src, alu_op, alu_op2_src, \
+                             cyc_count_control}
 `define IDL_CONTROL_BUNDLE {idl_low_src, idl_hi_src}
+
+`define UOP_IFETCH {`RW_READ, `PC_SRC_PC_PLUS1, `INSTR_REG_SRC_DATA_BUS, `IDL_LOW_SRC_IDL_LOW, \
+                    `IDL_HI_SRC_IDL_HI, `ACCUM_SRC_ACCUM, `ADDR_BUS_SRC_PC, `DATA_BUS_SRC_NONE,\
+                    `ALU_OP_NOP, `ALU_OP2_SRC_DATA_BUS, `CYC_COUNT_INCR}
+
 
 /**
  * A lot of the instruction decoding comes from the tables at the bottom of
@@ -98,7 +117,8 @@ module control_rom(input wire [7:0] instr,
                    output reg [1:0] idl_hi_src,
                    output reg [1:0] accum_src,
                    output reg [2:0] addr_bus_src,
-                   output reg [2:0] alu_op,
+                   output reg [1:0] data_bus_src,
+                   output reg [3:0] alu_op,
                    output reg [1:0] alu_op2_src,
                    output reg [1:0] cyc_count_control);
 
@@ -112,8 +132,11 @@ module control_rom(input wire [7:0] instr,
         bbb = instr[4:2];
         cc  = instr[1:0];
 
+        data_bus_src = `DATA_BUS_SRC_ACCUM;
+
         // the first part of the instruction is always instruction fetch
         if (cyc_count == 'b0) begin
+//`ifdef NOT_DEFINED
            rw = `RW_READ;
            pc_src = `PC_SRC_PC_PLUS1;
            instr_reg_src = `INSTR_REG_SRC_DATA_BUS;
@@ -122,6 +145,8 @@ module control_rom(input wire [7:0] instr,
            alu_op = `ALU_OP_NOP;
            alu_op2_src = `ALU_OP2_SRC_DATA_BUS;
            cyc_count_control = `CYC_COUNT_INCR;
+//`endif
+           //`CONTROL_ROM_BUNDLE = `UOP_IFETCH;
         end else begin
            // TODO; move this into case
            instr_reg_src = `INSTR_REG_SRC_INSTR_REG;
@@ -136,11 +161,14 @@ module control_rom(input wire [7:0] instr,
              // The only ones that are a little "odd" are LDA and STA, but we won't worry about
              // those for now.
              2'b01: begin
-                // switch over address mode
                 case(bbb)
                   // addr mode: x indexed, indirect
                   3'b000: begin
-                     `CONTROL_ROM_BUNDLE = 'b0;
+                     case (cyc_count)
+                       default: begin
+                          `CONTROL_ROM_BUNDLE = 'h0;
+                       end
+                     endcase
                   end
 
                   // addr mode: zeropage
@@ -161,22 +189,24 @@ module control_rom(input wire [7:0] instr,
 
                        // route *IDL_l to ALU input and store result in accum
                        'b010: begin
-                          rw = `RW_READ;
                           pc_src = `PC_SRC_PC;
                           `IDL_CONTROL_BUNDLE = 'b0;
-                          accum_src = `ACCUM_SRC_ALU;
                           addr_bus_src = `ADDR_BUS_SRC_IDL_LOW;
                           alu_op2_src = `ALU_OP2_SRC_DATA_BUS;
                           cyc_count_control = `CYC_COUNT_RESET;
-                          case(aaa)
-                            3'b000: alu_op = `ALU_OP_OR;
-                            3'b001: alu_op = `ALU_OP_AND;
-                            3'b010: alu_op = `ALU_OP_EOR;
-                            3'b011: alu_op = `ALU_OP_ADC;
-                            // 3'b111: alu_op = `ALU_OP_SBC;
-                            default: alu_op = 'b0;
-                          endcase
+                          alu_op = {1'b0, aaa};
+
+                          // unless we are doing an STA, in which case we write the data to the bus
+                          if (aaa != 'h4) begin
+                             rw = `RW_READ;
+                             accum_src = `ACCUM_SRC_ALU;
+                          end else begin
+                             rw = `RW_WRITE;
+                             accum_src = `ACCUM_SRC_ACCUM;
+                             data_bus_src = `DATA_BUS_SRC_ACCUM;
+                          end
                        end
+
                        default: begin
                           `CONTROL_ROM_BUNDLE = 'b0;
                        end
@@ -194,7 +224,7 @@ module control_rom(input wire [7:0] instr,
                           idl_hi_src = `IDL_HI_SRC_IDL_HI;
                           accum_src = `ACCUM_SRC_ALU;
                           addr_bus_src = `ADDR_BUS_SRC_PC;
-                          alu_op = `ALU_OP_ADC;
+                          alu_op = {1'b0, aaa};
                           alu_op2_src = `ALU_OP2_SRC_DATA_BUS;
                           cyc_count_control = `CYC_COUNT_RESET;
                        end
@@ -258,7 +288,7 @@ endmodule
 module cpu_2a03(input clock,
                 input  nreset,
                 output reg [15:0] addr,
-                inout  [7:0] data,
+                inout [7:0] data,
                 output rw,
                 input  nnmi,
                 input  nirq,
@@ -287,8 +317,9 @@ module cpu_2a03(input clock,
    // input data latch
    reg [15:0] IDL;
 
-   // output data latch, TODO: need to make sure tristate works
+   // output data latch
    reg [7:0] ODL;
+   assign data = (rw == `RW_WRITE) ? ODL : 8'hzz;
    reg [2:0] cyc_count;
 
    //////////////// control rom
@@ -298,7 +329,8 @@ module cpu_2a03(input clock,
    wire [1:0] idl_hi_src;
    wire [1:0] accum_src;
    wire [2:0] addr_bus_src;
-   wire [2:0] alu_op;
+   wire [1:0] data_bus_src;
+   wire [3:0] alu_op;
    wire [1:0] alu_op2_src;
    wire [1:0] cyc_count_control;
    control_rom cr(.instr(instr),
@@ -310,6 +342,7 @@ module cpu_2a03(input clock,
                   .idl_hi_src(idl_hi_src),
                   .accum_src(accum_src),
                   .addr_bus_src(addr_bus_src),
+                  .data_bus_src(data_bus_src),
                   .alu_op(alu_op),
                   .alu_op2_src(alu_op2_src),
                   .cyc_count_control(cyc_count_control));
@@ -327,11 +360,14 @@ module cpu_2a03(input clock,
         endcase
 
         case(alu_op)
-          `ALU_OP_NOP: alu_out = {8{1'b0}};
           `ALU_OP_OR:  alu_out = A | alu_op2;
           `ALU_OP_AND: alu_out = A & alu_op2;
           `ALU_OP_EOR: alu_out = A ^ alu_op2;
           `ALU_OP_ADC: alu_out = A + alu_op2;
+          `ALU_OP_STA: alu_out = 8'h0;
+          `ALU_OP_FWD_OP2: alu_out = alu_op2;
+          `ALU_OP_NOP: alu_out = {8{1'b0}};
+          default: alu_out = 8'hzz;
         endcase
      end
 
@@ -346,6 +382,17 @@ module cpu_2a03(input clock,
         endcase
      end
 
+   //////////////// mux for data bus
+   always @ *
+     begin
+        case(data_bus_src)
+          `DATA_BUS_SRC_NONE: ODL = 8'h00;
+          `DATA_BUS_SRC_ACCUM: ODL = A;
+          `DATA_BUS_SRC_X: ODL = X;
+          `DATA_BUS_SRC_Y: ODL = Y;
+        endcase
+     end
+
    //////////////// internal logic update
    always @ (posedge clock)
      begin
@@ -354,7 +401,7 @@ module cpu_2a03(input clock,
           // update accumulator
           case(accum_src)
             `ACCUM_SRC_ACCUM:   A <= A;
-            `ACCUM_SRC_ALU:         A <= alu_out;
+            `ACCUM_SRC_ALU:     A <= alu_out;
           endcase
 
           // instruction register
@@ -373,12 +420,6 @@ module cpu_2a03(input clock,
             `IDL_HI_SRC_DATA_BUS: IDL[15:8] <= data[7:0];
           endcase
 
-          // update accumulator
-          case(accum_src)
-            `ACCUM_SRC_ACCUM: A <= A;
-            `ACCUM_SRC_ALU:       A <= alu_out;
-          endcase
-
           // update program counter
           case(pc_src)
             `PC_SRC_PC:        PC <= PC;
@@ -388,8 +429,8 @@ module cpu_2a03(input clock,
           // update cycle count
           case(cyc_count_control)
             `CYC_COUNT_INCR:   cyc_count <= cyc_count + 1;
-            `CYC_COUNT_RESET:  cyc_count <= 3'b000;
-            `CYC_COUNT_SET1:   cyc_count <= 3'b001;
+            `CYC_COUNT_RESET:  cyc_count <= 'b000;
+            `CYC_COUNT_SET1:   cyc_count <= 'b001;
           endcase
        end
      else
