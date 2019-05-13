@@ -62,9 +62,14 @@ module cpu_testbench();
         for (i = 0; i <= 65536; i = i + 1)
           memory.memory[i] = 'h0;
         clock = 1'b0;
+        memory.memory['h821] = 8'h31;
+        memory.memory['h822] = 8'h14;
 
         $dumpfile("cpu_testbench.vcd");
         $dumpvars(0, cpu_testbench);
+
+        $monitor("addrbus = $%h; databus = $%h; PC = $%h; A = $%h", addr, bidir, cpu.PC, cpu.A);
+
 
         // load machine code into memory
         $readmemh("prog.mem", memory.memory, 0, 21);

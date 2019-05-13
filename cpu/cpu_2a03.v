@@ -1,5 +1,7 @@
 `timescale 1ns/100ps
 
+`define DEFINED
+
 ///////////////////////////////////////////////////////////////////
 // Defines for internal control signals coming from control ROM
 ///////////////////////////////////////////////////////////////////
@@ -84,14 +86,69 @@ cyc_count_control = `CYC_COUNT_INCR;
 `endif
 
 /////////////////// "predefined" micro-ops
-`define CONTROL_ROM_BUNDLE  {rw, pc_src, instr_reg_src, idl_low_src, idl_hi_src,\
-                             accum_src, addr_bus_src, data_bus_src, alu_op, alu_op2_src, \
+`define CONTROL_ROM_BUNDLE  {rw,            \
+                             pc_src,        \
+                             instr_reg_src, \
+                             idl_low_src,   \
+                             idl_hi_src,    \
+                             accum_src,     \
+                             addr_bus_src,  \
+                             data_bus_src,  \
+                             alu_op,        \
+                             alu_op2_src,   \
                              cyc_count_control}
+
 `define IDL_CONTROL_BUNDLE {idl_low_src, idl_hi_src}
 
-`define UOP_IFETCH {`RW_READ, `PC_SRC_PC_PLUS1, `INSTR_REG_SRC_DATA_BUS, `IDL_LOW_SRC_IDL_LOW, \
-                    `IDL_HI_SRC_IDL_HI, `ACCUM_SRC_ACCUM, `ADDR_BUS_SRC_PC, `DATA_BUS_SRC_NONE,\
-                    `ALU_OP_NOP, `ALU_OP2_SRC_DATA_BUS, `CYC_COUNT_INCR}
+`define UOP_IFETCH {`RW_READ,                   \
+                    `PC_SRC_PC_PLUS1,           \
+                    `INSTR_REG_SRC_DATA_BUS,    \
+                    `IDL_LOW_SRC_IDL_LOW,       \
+                    `IDL_HI_SRC_IDL_HI,         \
+                    `ACCUM_SRC_ACCUM,           \
+                    `ADDR_BUS_SRC_PC,           \
+                    `DATA_BUS_SRC_NONE,         \
+                    `ALU_OP_NOP,                \
+                    `ALU_OP2_SRC_DATA_BUS,      \
+                    `CYC_COUNT_INCR}
+
+`define UOP_LOAD_IDL_LOW_FROM_PCPTR   {`RW_READ,                   \
+                                       `PC_SRC_PC_PLUS1,           \
+                                       `INSTR_REG_SRC_INSTR_REG,   \
+                                       `IDL_LOW_SRC_DATA_BUS,      \
+                                       `IDL_HI_SRC_IDL_HI,         \
+                                       `ACCUM_SRC_ACCUM,           \
+                                       `ADDR_BUS_SRC_PC,           \
+                                       `DATA_BUS_SRC_NONE,         \
+                                       `ALU_OP_NOP,                \
+                                       `ALU_OP2_SRC_DATA_BUS,      \
+                                       `CYC_COUNT_INCR}
+
+`define UOP_LOAD_IDL_HI_FROM_PCPTR    {`RW_READ,                   \
+                                        `PC_SRC_PC_PLUS1,           \
+                                        `INSTR_REG_SRC_INSTR_REG,   \
+                                        `IDL_LOW_SRC_IDL_LOW,       \
+                                        `IDL_HI_SRC_DATA_BUS,       \
+                                        `ACCUM_SRC_ACCUM,           \
+                                        `ADDR_BUS_SRC_PC,           \
+                                        `DATA_BUS_SRC_NONE,         \
+                                        `ALU_OP_NOP,                \
+                                        `ALU_OP2_SRC_DATA_BUS,      \
+                                        `CYC_COUNT_INCR}
+
+// put *PC into ALU operand2. Other things, like what the alu does with aluop2 or where the alu
+// result goes, may still need to be specified outside of this macro
+`define UOP_PCPTR_INTO_ALUOP2 {`RW_READ,            \
+                               `PC_SRC_PC_PLUS1,    \
+                               `INSTR_REG_SRC_INSTR_REG, \
+                               `IDL_LOW_SRC_IDL_LOW,\
+                               `IDL_HI_SRC_IDL_HI,  \
+                               `ACCUM_SRC_ALU,      \
+                               `ADDR_BUS_SRC_PC,    \
+                               `DATA_BUS_SRC_NONE,  \
+                               `ALU_OP_NOP,         \
+                               `ALU_OP2_SRC_DATA_BUS,      \
+                               `CYC_COUNT_RESET}
 
 
 /**
@@ -132,24 +189,17 @@ module control_rom(input wire [7:0] instr,
         bbb = instr[4:2];
         cc  = instr[1:0];
 
-        data_bus_src = `DATA_BUS_SRC_ACCUM;
+        data_bus_src = `DATA_BUS_SRC_NONE;
 
         // the first part of the instruction is always instruction fetch
         if (cyc_count == 'b0) begin
-//`ifdef NOT_DEFINED
-           rw = `RW_READ;
-           pc_src = `PC_SRC_PC_PLUS1;
-           instr_reg_src = `INSTR_REG_SRC_DATA_BUS;
-           accum_src = `ACCUM_SRC_ACCUM;
-           addr_bus_src = `ADDR_BUS_SRC_PC;
-           alu_op = `ALU_OP_NOP;
-           alu_op2_src = `ALU_OP2_SRC_DATA_BUS;
-           cyc_count_control = `CYC_COUNT_INCR;
-//`endif
-           //`CONTROL_ROM_BUNDLE = `UOP_IFETCH;
+           `CONTROL_ROM_BUNDLE = `UOP_IFETCH;
         end else begin
-           // TODO; move this into case
+           // generally, we keep the instr reg src locked.
+           // only in special cases with "pipelining" will we change the instr reg on a cycle that's
+           // not 0.
            instr_reg_src = `INSTR_REG_SRC_INSTR_REG;
+
            // switch over "c" bits
            case(cc)
              2'b00: begin
@@ -176,15 +226,7 @@ module control_rom(input wire [7:0] instr,
                      case(cyc_count)
                        // fetch *PC from the memory and put it in IDL low
                        'b001: begin
-                          rw = `RW_READ;
-                          pc_src = `PC_SRC_PC_PLUS1;
-                          idl_low_src = `IDL_LOW_SRC_DATA_BUS;
-                          idl_hi_src = `IDL_HI_SRC_IDL_HI;
-                          accum_src = `ACCUM_SRC_ACCUM;
-                          addr_bus_src = `ADDR_BUS_SRC_PC;
-                          alu_op = `ALU_OP_NOP;
-                          alu_op2_src = `ALU_OP2_SRC_DATA_BUS;
-                          cyc_count_control = `CYC_COUNT_INCR;
+                          `CONTROL_ROM_BUNDLE = `UOP_LOAD_IDL_LOW_FROM_PCPTR;
                        end // case: 'b001
 
                        // route *IDL_l to ALU input and store result in accum
@@ -218,14 +260,8 @@ module control_rom(input wire [7:0] instr,
                      case(cyc_count)
                        // fetch the operand, put it directly into the ALU
                        'b001: begin
-                          rw = `RW_READ;
-                          pc_src = `PC_SRC_PC_PLUS1;
-                          idl_low_src = `IDL_LOW_SRC_IDL_LOW;
-                          idl_hi_src = `IDL_HI_SRC_IDL_HI;
-                          accum_src = `ACCUM_SRC_ALU;
-                          addr_bus_src = `ADDR_BUS_SRC_PC;
+                          `CONTROL_ROM_BUNDLE = `UOP_PCPTR_INTO_ALUOP2;
                           alu_op = {1'b0, aaa};
-                          alu_op2_src = `ALU_OP2_SRC_DATA_BUS;
                           cyc_count_control = `CYC_COUNT_RESET;
                        end
                      endcase
@@ -235,11 +271,42 @@ module control_rom(input wire [7:0] instr,
                      `CONTROL_ROM_BUNDLE = 'b0;
                   end
 
-`ifdef NOTDEFINED
                   // addr mode: abs
                   3'b011: begin
+                     case(cyc_count)
+                       // fetch *PC from the memory and put it in IDL low
+                       'b001: `CONTROL_ROM_BUNDLE = `UOP_LOAD_IDL_LOW_FROM_PCPTR;
+
+                       // fetch *PC from memory and put it in IDL high
+                       'b010: `CONTROL_ROM_BUNDLE = `UOP_LOAD_IDL_HI_FROM_PCPTR;
+
+                       // do operation
+                       'b011: begin
+                          pc_src = `PC_SRC_PC;
+                          `IDL_CONTROL_BUNDLE = 'b0;
+                          addr_bus_src = `ADDR_BUS_SRC_IDL;
+                          alu_op2_src = `ALU_OP2_SRC_DATA_BUS;
+                          cyc_count_control = `CYC_COUNT_RESET;
+                          alu_op = {1'b0, aaa};
+
+                          // unless we are doing an STA, in which case we write the data to the bus
+                          if (aaa != 'h4) begin
+                             rw = `RW_READ;
+                             accum_src = `ACCUM_SRC_ALU;
+                          end else begin
+                             rw = `RW_WRITE;
+                             accum_src = `ACCUM_SRC_ACCUM;
+                             data_bus_src = `DATA_BUS_SRC_ACCUM;
+                          end
+                       end
+
+                       default: begin
+                          `CONTROL_ROM_BUNDLE = 'b0;
+                       end
+                     endcase
                   end
 
+`ifdef NOTDEFINED
                   // addr mode: indirect, Y indexed
                   3'b100: begin
                   end
