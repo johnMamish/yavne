@@ -11,6 +11,9 @@
 // increment the PC this cycle
 `define PC_SRC_PC_PLUS1 3'b1
 // something about branching
+`define PC_SRC_DATA_BUS 3'h2
+`define PC_SRC_IDL 3'h3
+
 // something about ISRs
 
 
@@ -124,7 +127,7 @@ cyc_count_control = `CYC_COUNT_INCR;
                                        `ALU_OP2_SRC_DATA_BUS,      \
                                        `CYC_COUNT_INCR}
 
-`define UOP_LOAD_IDL_HI_FROM_PCPTR    {`RW_READ,                   \
+`define UOP_LOAD_IDL_HI_FROM_PCPTR    {`RW_READ,                    \
                                         `PC_SRC_PC_PLUS1,           \
                                         `INSTR_REG_SRC_INSTR_REG,   \
                                         `IDL_LOW_SRC_IDL_LOW,       \
@@ -135,6 +138,18 @@ cyc_count_control = `CYC_COUNT_INCR;
                                         `ALU_OP_NOP,                \
                                         `ALU_OP2_SRC_DATA_BUS,      \
                                         `CYC_COUNT_INCR}
+
+`define UOP_LOAD_IDL_INTO_PC  {`RW_READ,                  \
+                               `PC_SRC_IDL,               \
+                               `INSTR_REG_SRC_INSTR_REG,  \
+                               `IDL_LOW_SRC_IDL_LOW,      \
+                               `IDL_HI_SRC_IDL_HI,        \
+                               `ACCUM_SRC_ACCUM,          \
+                               `ADDR_BUS_SRC_IDL,         \
+                               `DATA_BUS_SRC_NONE,        \
+                               `ALU_OP_NOP,               \
+                               `ALU_OP2_SRC_DATA_BUS,     \
+                               `CYC_COUNT_INCR}
 
 // put *PC into ALU operand2. Other things, like what the alu does with aluop2 or where the alu
 // result goes, may still need to be specified outside of this macro
@@ -203,7 +218,22 @@ module control_rom(input wire [7:0] instr,
            // switch over "c" bits
            case(cc)
              2'b00: begin
-                `CONTROL_ROM_BUNDLE = 'b0;
+                // just JMP implemented for now
+                if ((aaa == 'h2) && (bbb == 'h3)) begin
+                   case (cyc_count)
+                     'b001: `CONTROL_ROM_BUNDLE = `UOP_LOAD_IDL_LOW_FROM_PCPTR;
+                     'b010: `CONTROL_ROM_BUNDLE = `UOP_LOAD_IDL_HI_FROM_PCPTR;
+                     'b011: begin
+                        `CONTROL_ROM_BUNDLE = `UOP_LOAD_IDL_INTO_PC;
+
+                        // fetch next instr
+                        addr_bus_src = `ADDR_BUS_SRC_IDL;
+                        instr_reg_src = `INSTR_REG_SRC_DATA_BUS;
+                     end
+                   endcase
+                end else begin
+                   `CONTROL_ROM_BUNDLE = 'b0;
+                end
              end
 
              // instructions with cc == 1 are all arithmetic instructions and all have "even"
@@ -377,6 +407,8 @@ module cpu_2a03(input clock,
    reg [7:0] X;
    reg [7:0] Y;
 
+   reg [7:0] flags;
+
    //////////////// internal registers
    // current instruction
    reg [7:0] instr;
@@ -416,9 +448,13 @@ module cpu_2a03(input clock,
 
    //////////////// ALU
    // TODO: carry logic
-   // TODO: flags register
+   // TODO: flags register'
+   // TODO: figure out difference between carry and overflow flags!!!
+   // NV-BDIZC
    reg [7:0] alu_out;
    reg [7:0] alu_op2;
+   reg [7:0] alu_flags_out;
+   reg [7:0] alu_flags_overwrite;
    always @ *
      begin
         case(alu_op2_src)
@@ -426,14 +462,49 @@ module cpu_2a03(input clock,
           `ALU_OP2_SRC_IDL_LOW:  alu_op2 = IDL[7:0];
         endcase
 
+        alu_flags_overwrite = 'h0;
+        alu_flags_out = 'h0;
+
         case(alu_op)
-          `ALU_OP_OR:  alu_out = A | alu_op2;
-          `ALU_OP_AND: alu_out = A & alu_op2;
-          `ALU_OP_EOR: alu_out = A ^ alu_op2;
-          `ALU_OP_ADC: alu_out = A + alu_op2;
-          `ALU_OP_STA: alu_out = 8'h0;
-          `ALU_OP_FWD_OP2: alu_out = alu_op2;
-          `ALU_OP_NOP: alu_out = {8{1'b0}};
+          `ALU_OP_OR:  begin
+             alu_out = A | alu_op2;
+             alu_flags_overwrite = 8'b1000_0010;
+             alu_flags_out = {alu_out[7], 5'h0, (alu_out == 8'h00), 1'h0};
+          end
+
+          `ALU_OP_AND: begin
+             alu_out = A & alu_op2;
+             alu_flags_overwrite = 8'b1000_0010;
+             alu_flags_out = {alu_out[7], 5'h0, (alu_out == 8'h00), 1'h0};
+          end
+
+          `ALU_OP_EOR: begin
+             alu_out = A ^ alu_op2;
+             alu_flags_overwrite = 8'b1000_0010;
+             alu_flags_out = {alu_out[7], 5'h0, (alu_out == 8'h00), 1'h0};
+          end
+
+          `ALU_OP_ADC: begin
+             //{alu_flags_out[?], alu_out} = A + alu_op2;
+             alu_out = A + alu_op2;
+             alu_flags_overwrite = 8'b1000_0010;
+             alu_flags_out[7] = alu_out[7];
+             alu_flags_out[5:0] = {4'h0, (alu_out == 8'h00), 1'h0};
+          end
+
+          `ALU_OP_STA: begin
+             alu_out = 8'h0;
+          end
+
+          `ALU_OP_FWD_OP2: begin
+             alu_out = alu_op2;
+          end
+
+          `ALU_OP_NOP: begin
+             alu_out = 8'h00;
+             alu_flags_overwrite = 8'h00;
+          end
+
           default: alu_out = 8'hzz;
         endcase
      end
@@ -461,6 +532,7 @@ module cpu_2a03(input clock,
      end
 
    //////////////// internal logic update
+   integer i = 0;
    always @ (posedge clock)
      begin
      if (nreset)
@@ -491,6 +563,9 @@ module cpu_2a03(input clock,
           case(pc_src)
             `PC_SRC_PC:        PC <= PC;
             `PC_SRC_PC_PLUS1:  PC <= PC + 1;
+            `PC_SRC_IDL:       PC <= IDL;
+
+            //;`PC_SRC_DATA_BUS:  PC <= data
           endcase
 
           // update cycle count
@@ -499,6 +574,11 @@ module cpu_2a03(input clock,
             `CYC_COUNT_RESET:  cyc_count <= 'b000;
             `CYC_COUNT_SET1:   cyc_count <= 'b001;
           endcase
+
+          // flags register
+          for (i = 0; i < 8; i = i + 1) begin
+             flags[i] = alu_flags_overwrite[i] ? alu_flags_out[i] : flags[i];
+          end
        end
      else
        begin
