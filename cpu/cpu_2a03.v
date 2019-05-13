@@ -12,7 +12,7 @@
 `define PC_SRC_PC_PLUS1 3'b1
 // something about branching
 `define PC_SRC_DATA_BUS 3'h2
-`define PC_SRC_IDL 3'h3
+`define PC_SRC_IDL_PLUS1 3'h3
 
 // something about ISRs
 
@@ -139,8 +139,8 @@ cyc_count_control = `CYC_COUNT_INCR;
                                         `ALU_OP2_SRC_DATA_BUS,      \
                                         `CYC_COUNT_INCR}
 
-`define UOP_LOAD_IDL_INTO_PC  {`RW_READ,                  \
-                               `PC_SRC_IDL,               \
+`define UOP_LOAD_IDL_PLUS1_INTO_PC  {`RW_READ,                  \
+                               `PC_SRC_IDL_PLUS1,               \
                                `INSTR_REG_SRC_INSTR_REG,  \
                                `IDL_LOW_SRC_IDL_LOW,      \
                                `IDL_HI_SRC_IDL_HI,        \
@@ -224,11 +224,12 @@ module control_rom(input wire [7:0] instr,
                      'b001: `CONTROL_ROM_BUNDLE = `UOP_LOAD_IDL_LOW_FROM_PCPTR;
                      'b010: `CONTROL_ROM_BUNDLE = `UOP_LOAD_IDL_HI_FROM_PCPTR;
                      'b011: begin
-                        `CONTROL_ROM_BUNDLE = `UOP_LOAD_IDL_INTO_PC;
+                        `CONTROL_ROM_BUNDLE = `UOP_LOAD_IDL_PLUS1_INTO_PC;
 
                         // fetch next instr
                         addr_bus_src = `ADDR_BUS_SRC_IDL;
                         instr_reg_src = `INSTR_REG_SRC_DATA_BUS;
+                        cyc_count_control = `CYC_COUNT_SET1;
                      end
                    endcase
                 end else begin
@@ -563,7 +564,7 @@ module cpu_2a03(input clock,
           case(pc_src)
             `PC_SRC_PC:        PC <= PC;
             `PC_SRC_PC_PLUS1:  PC <= PC + 1;
-            `PC_SRC_IDL:       PC <= IDL;
+            `PC_SRC_IDL_PLUS1:       PC <= IDL + 1;
 
             //;`PC_SRC_DATA_BUS:  PC <= data
           endcase
