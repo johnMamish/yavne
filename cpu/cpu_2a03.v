@@ -218,23 +218,37 @@ module control_rom(input wire [7:0] instr,
            // switch over "c" bits
            case(cc)
              2'b00: begin
-                // just JMP implemented for now
-                if ((aaa == 'h2) && (bbb == 'h3)) begin
-                   case (cyc_count)
-                     'b001: `CONTROL_ROM_BUNDLE = `UOP_LOAD_IDL_LOW_FROM_PCPTR;
-                     'b010: `CONTROL_ROM_BUNDLE = `UOP_LOAD_IDL_HI_FROM_PCPTR;
-                     'b011: begin
-                        `CONTROL_ROM_BUNDLE = `UOP_LOAD_IDL_PLUS1_INTO_PC;
+                case({aaa, bbb})
+                  // JMP abs
+                   {3'h2, 3'h3}: begin
+                      case(cyc_count)
+                        'b001: `CONTROL_ROM_BUNDLE = `UOP_LOAD_IDL_LOW_FROM_PCPTR;
+                        'b010: `CONTROL_ROM_BUNDLE = `UOP_LOAD_IDL_HI_FROM_PCPTR;
+                        'b011: begin
+                           `CONTROL_ROM_BUNDLE = `UOP_LOAD_IDL_PLUS1_INTO_PC;
+                           // fetch next instr
+                           addr_bus_src = `ADDR_BUS_SRC_IDL;
+                           instr_reg_src = `INSTR_REG_SRC_DATA_BUS;
+                           cyc_count_control = `CYC_COUNT_SET1;
+                        end
+                      endcase // case (cyc_count)
+                   end // case: {3'h2, 3'h3}
 
-                        // fetch next instr
-                        addr_bus_src = `ADDR_BUS_SRC_IDL;
-                        instr_reg_src = `INSTR_REG_SRC_DATA_BUS;
-                        cyc_count_control = `CYC_COUNT_SET1;
-                     end
-                   endcase
-                end else begin
-                   `CONTROL_ROM_BUNDLE = 'b0;
-                end
+                  // XXX JMP ind
+                  {3'h3, 3'h3}: begin
+                     case(cyc_count)
+                       'b001: `CONTROL_ROM_BUNDLE = `UOP_LOAD_IDL_LOW_FROM_PCPTR;
+                       'b010: `CONTROL_ROM_BUNDLE = `UOP_LOAD_IDL_HI_FROM_PCPTR;
+                       'b011: begin
+                          `CONTROL_ROM_BUNDLE = `UOP_LOAD_IDL_PLUS1_INTO_PC;
+                          // fetch next instr
+                          addr_bus_src = `ADDR_BUS_SRC_IDL;
+                          instr_reg_src = `INSTR_REG_SRC_DATA_BUS;
+                          cyc_count_control = `CYC_COUNT_SET1;
+                       end
+                     endcase // case (cyc_count)
+                  end // case: {3'h2, 3'h3}
+                endcase
              end
 
              // instructions with cc == 1 are all arithmetic instructions and all have "even"
@@ -255,10 +269,7 @@ module control_rom(input wire [7:0] instr,
                   // addr mode: zeropage
                   3'b001: begin
                      case(cyc_count)
-                       // fetch *PC from the memory and put it in IDL low
-                       'b001: begin
-                          `CONTROL_ROM_BUNDLE = `UOP_LOAD_IDL_LOW_FROM_PCPTR;
-                       end // case: 'b001
+                       'b001: `CONTROL_ROM_BUNDLE = `UOP_LOAD_IDL_LOW_FROM_PCPTR;
 
                        // route *IDL_l to ALU input and store result in accum
                        'b010: begin
@@ -305,10 +316,7 @@ module control_rom(input wire [7:0] instr,
                   // addr mode: abs
                   3'b011: begin
                      case(cyc_count)
-                       // fetch *PC from the memory and put it in IDL low
                        'b001: `CONTROL_ROM_BUNDLE = `UOP_LOAD_IDL_LOW_FROM_PCPTR;
-
-                       // fetch *PC from memory and put it in IDL high
                        'b010: `CONTROL_ROM_BUNDLE = `UOP_LOAD_IDL_HI_FROM_PCPTR;
 
                        // do operation

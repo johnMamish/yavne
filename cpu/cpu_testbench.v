@@ -78,7 +78,7 @@ module cpu_testbench();
         nreset = 1'b0; #3000;
 
         // let MCU run for a bit?
-        nreset = 1'b1; #25000;
+        nreset = 1'b1; #250000;
 
         $finish;
 
