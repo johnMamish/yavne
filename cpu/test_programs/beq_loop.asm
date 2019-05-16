@@ -1,5 +1,10 @@
     .org $0000
 
+    jmp _start
+
+    .res 253, $00
+
+_start:
     lda #$15
 _loop:
     adc #$FF
