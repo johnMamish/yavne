@@ -50,9 +50,23 @@ module cpu_testbench();
    mem memory(.clock(~clock), .addr(addr), .rw(rw), .data_in(bidir), .data_out(data_from_mem));
 
    // generate 1MHz clock
+   reg [3:0] cyc_count_prev;
+   always @ (negedge clock) begin
+        cyc_count_prev <= cpu.cyc_count;
+   end
+
    always
      begin
-        #500; clock = ~clock;
+        #490;
+        clock = ~clock;
+        #10;
+
+        if (clock) begin
+           if (cpu.cyc_count <= cyc_count_prev) begin
+              $display("\n");
+           end
+           $display("addrbus = $%h; databus = $%h; PC = $%h; A = $%h; cyccount = %h", addr, bidir, cpu.PC, cpu.A, cpu.cyc_count);
+        end
      end
 
    integer i;
@@ -67,8 +81,6 @@ module cpu_testbench();
 
         $dumpfile("cpu_testbench.vcd");
         $dumpvars(0, cpu_testbench);
-
-        $monitor("addrbus = $%h; databus = $%h; PC = $%h; A = $%h", addr, bidir, cpu.PC, cpu.A);
 
 
         // load machine code into memory

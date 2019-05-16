@@ -312,7 +312,6 @@ module control_rom(input wire [7:0] instr,
                   // all branch instructions
                   // NB: watch out for 2's complement in branch addition
                   {3'b???, 3'h4}: begin
-                     $display("2341234");
                      case(cyc_count)
                        'b001: `CONTROL_ROM_BUNDLE = `UOP_LOAD_IDL_LOW_FROM_PCPTR;
                        'b010: begin
