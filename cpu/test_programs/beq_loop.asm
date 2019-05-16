@@ -2,15 +2,22 @@
 
     jmp _start
 
-    .res 253, $00
+    .res 1
 
+    .align 128, $f0
+    .res 123
+
+    ;; loop should straddle page boundary
 _start:
-    lda #$15
+    lda #$07
 _loop:
     adc #$FF
     sta $80
-    beq _done
-    jmp _loop
+    beq _otherlabel
+    bne _loop
 
-_done:
-    beq _done
+
+_otherlabel:
+    beq _otherlabel
+_oopsie:
+    jmp _oopsie

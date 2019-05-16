@@ -72,7 +72,7 @@ module cpu_testbench();
 
 
         // load machine code into memory
-        $readmemh("prog.mem", memory.memory, 0, 21);
+        $readmemh("prog.mem", memory.memory);
 
         // strobe reset for 3 microseconds
         nreset = 1'b0; #3000;
