@@ -55,8 +55,18 @@
 
 
 /////////////////// A register
-`define ACCUM_SRC_ACCUM 2'b0
-`define ACCUM_SRC_ALU 2'b1
+`define ACCUM_SRC_ACCUM 2'h0
+`define ACCUM_SRC_ALU 2'h1
+`define ACCUM_SRC_X   2'h2
+`define ACCUM_SRC_Y   2'h3
+
+
+/////////////////// X register
+`define X_SRC_X  2'h0
+`define X_SRC_ACCUM 2'h1
+
+/////////////////// Y register
+`define Y_SRC_Y  2'h0
 
 
 /////////////////// internal data latch
@@ -118,6 +128,8 @@ cyc_count_control = `CYC_COUNT_INCR;
                              idl_low_src,   \
                              idl_hi_src,    \
                              accum_src,     \
+                             x_src,         \
+                             y_src,         \
                              addr_bus_src,  \
                              data_bus_src,  \
                              alu_op,        \
@@ -132,6 +144,8 @@ cyc_count_control = `CYC_COUNT_INCR;
                     `IDL_LOW_SRC_IDL_LOW,       \
                     `IDL_HI_SRC_IDL_HI,         \
                     `ACCUM_SRC_ACCUM,           \
+                    `X_SRC_X,                   \
+                    `Y_SRC_Y,                   \
                     `ADDR_BUS_SRC_PC,           \
                     `DATA_BUS_SRC_NONE,         \
                     `ALU_OP_NOP,                \
@@ -144,6 +158,8 @@ cyc_count_control = `CYC_COUNT_INCR;
                                        `IDL_LOW_SRC_DATA_BUS,       \
                                        `IDL_HI_SRC_IDL_HI,          \
                                        `ACCUM_SRC_ACCUM,            \
+                                       `X_SRC_X,                   \
+                                       `Y_SRC_Y,                   \
                                        `ADDR_BUS_SRC_PC,            \
                                        `DATA_BUS_SRC_NONE,          \
                                        `ALU_OP_NOP,                 \
@@ -156,6 +172,8 @@ cyc_count_control = `CYC_COUNT_INCR;
                                         `IDL_LOW_SRC_IDL_LOW,       \
                                         `IDL_HI_SRC_DATA_BUS,       \
                                         `ACCUM_SRC_ACCUM,           \
+                                       `X_SRC_X,                   \
+                                       `Y_SRC_Y,                   \
                                         `ADDR_BUS_SRC_PC,           \
                                         `DATA_BUS_SRC_NONE,         \
                                         `ALU_OP_NOP,                \
@@ -169,6 +187,8 @@ cyc_count_control = `CYC_COUNT_INCR;
                                            `IDL_LOW_SRC_IDL_LOW,       \
                                            `IDL_HI_SRC_IDL_HI,         \
                                            `ACCUM_SRC_ACCUM,           \
+                                           `X_SRC_X,                   \
+                                           `Y_SRC_Y,                   \
                                            `ADDR_BUS_SRC_PC,           \
                                            `DATA_BUS_SRC_NONE,         \
                                            `ALU_OP_NOP,                \
@@ -176,16 +196,18 @@ cyc_count_control = `CYC_COUNT_INCR;
                                            `CYC_COUNT_RESET}
 
 `define UOP_LOAD_IDL_INTO_PC  {`RW_READ,                  \
-                                     `PC_SRC_IDL,         \
-                                     `INSTR_REG_SRC_INSTR_REG,  \
-                                     `IDL_LOW_SRC_IDL_LOW,      \
-                                     `IDL_HI_SRC_IDL_HI,        \
-                                     `ACCUM_SRC_ACCUM,          \
-                                     `ADDR_BUS_SRC_IDL,         \
-                                     `DATA_BUS_SRC_NONE,        \
-                                     `ALU_OP_NOP,               \
-                                     `ALU_OP2_SRC_DATA_BUS,     \
-                                     `CYC_COUNT_INCR}
+                               `PC_SRC_IDL,         \
+                               `INSTR_REG_SRC_INSTR_REG,  \
+                               `IDL_LOW_SRC_IDL_LOW,      \
+                               `IDL_HI_SRC_IDL_HI,        \
+                               `ACCUM_SRC_ACCUM,          \
+                               `X_SRC_X,                   \
+                               `Y_SRC_Y,                   \
+                               `ADDR_BUS_SRC_IDL,         \
+                               `DATA_BUS_SRC_NONE,        \
+                               `ALU_OP_NOP,               \
+                               `ALU_OP2_SRC_DATA_BUS,     \
+                               `CYC_COUNT_INCR}
 
 `define UOP_BRANCH_CYC2 {`RW_READ,                  \
                          `PC_SRC_BRANCH_ON_PLUS,    \
@@ -193,6 +215,8 @@ cyc_count_control = `CYC_COUNT_INCR;
                          `IDL_LOW_SRC_IDL_LOW,      \
                          `IDL_HI_SRC_IDL_HI,        \
                          `ACCUM_SRC_ACCUM,          \
+                         `X_SRC_X,                   \
+                         `Y_SRC_Y,                   \
                          `ADDR_BUS_SRC_PC,          \
                          `DATA_BUS_SRC_NONE,        \
                          `ALU_OP_PCL,               \
@@ -205,6 +229,8 @@ cyc_count_control = `CYC_COUNT_INCR;
                          `IDL_LOW_SRC_IDL_LOW,      \
                          `IDL_HI_SRC_IDL_HI,        \
                          `ACCUM_SRC_ACCUM,          \
+                         `X_SRC_X,                   \
+                         `Y_SRC_Y,                   \
                          `ADDR_BUS_SRC_PC,          \
                          `DATA_BUS_SRC_NONE,        \
                          `ALU_OP_PCH,               \
@@ -218,6 +244,8 @@ cyc_count_control = `CYC_COUNT_INCR;
                          `IDL_LOW_SRC_IDL_LOW,      \
                          `IDL_HI_SRC_IDL_HI,        \
                          `ACCUM_SRC_ACCUM,          \
+                         `X_SRC_X,                   \
+                         `Y_SRC_Y,                   \
                          `ADDR_BUS_SRC_PC,          \
                          `DATA_BUS_SRC_NONE,        \
                          `ALU_OP_NOP,               \
@@ -233,6 +261,8 @@ cyc_count_control = `CYC_COUNT_INCR;
                                `IDL_LOW_SRC_IDL_LOW,\
                                `IDL_HI_SRC_IDL_HI,  \
                                `ACCUM_SRC_ALU,      \
+                               `X_SRC_X,                   \
+                               `Y_SRC_Y,                   \
                                `ADDR_BUS_SRC_PC,    \
                                `DATA_BUS_SRC_NONE,  \
                                `ALU_OP_NOP,         \
@@ -262,6 +292,8 @@ module control_rom(input wire [7:0] instr,
                    output reg [1:0] idl_low_src,
                    output reg [1:0] idl_hi_src,
                    output reg [1:0] accum_src,
+                   output reg [1:0] x_src,
+                   output reg [1:0] y_src,
                    output reg [2:0] addr_bus_src,
                    output reg [1:0] data_bus_src,
                    output reg [3:0] alu_op,
@@ -439,6 +471,18 @@ module control_rom(input wire [7:0] instr,
                 endcase // case (bbb)
              end // case: 2'b01
 
+             2'b10: begin
+                casez({aaa, bbb})
+                  // TXA; pipelined
+                  {3'b100, 3'h2}: begin
+                     `CONTROL_ROM_BUNDLE = `UOP_IFETCH; accum_src = `ACCUM_SRC_X; cyc_count_control = `CYC_COUNT_SET1;
+                  end
+                  {3'b101, 3'h2}: begin
+                     `CONTROL_ROM_BUNDLE = `UOP_IFETCH; x_src = `X_SRC_ACCUM; cyc_count_control = `CYC_COUNT_SET1;
+                  end
+                endcase // case (bbb)
+             end
+
              default: begin
                 `CONTROL_ROM_BUNDLE = 'b0;
              end
@@ -510,6 +554,8 @@ module cpu_2a03(input clock,
    wire [1:0] idl_low_src;
    wire [1:0] idl_hi_src;
    wire [1:0] accum_src;
+   wire [1:0] x_src;
+   wire [1:0] y_src;
    wire [2:0] addr_bus_src;
    wire [1:0] data_bus_src;
    wire [3:0] alu_op;
@@ -523,6 +569,8 @@ module cpu_2a03(input clock,
                   .idl_low_src(idl_low_src),
                   .idl_hi_src(idl_hi_src),
                   .accum_src(accum_src),
+                  .x_src(x_src),
+                  .y_src(y_src),
                   .addr_bus_src(addr_bus_src),
                   .data_bus_src(data_bus_src),
                   .alu_op(alu_op),
@@ -646,6 +694,12 @@ module cpu_2a03(input clock,
           case(accum_src)
             `ACCUM_SRC_ACCUM:   A <= A;
             `ACCUM_SRC_ALU:     A <= alu_out;
+            `ACCUM_SRC_X:       A <= X;
+          endcase
+
+          case(x_src)
+            `X_SRC_X:     X <= X;
+            `X_SRC_ACCUM: X <= A;
           endcase
 
           // instruction register

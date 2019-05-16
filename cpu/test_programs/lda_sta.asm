@@ -1,8 +1,15 @@
 .org $0000
 
-    LDA #$01
-    STA $0200
-    LDA #$05
-    STA $0201
-    LDA #$08
-    STA $0202
+    lda #$01
+    sta $0200
+    lda #$05
+    sta $0201
+    lda #$08
+    sta $0202
+
+    tax
+    lda #$a5
+    txa
+
+_done:
+    jmp _done
