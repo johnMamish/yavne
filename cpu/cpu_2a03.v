@@ -611,6 +611,7 @@ module cpu_2a03(input clock,
    //////////////// mux for data bus
    always @ *
      begin
+        ODL = 'h0;
         case(data_bus_src)
           `DATA_BUS_SRC_NONE: ODL = 8'h00;
           `DATA_BUS_SRC_ACCUM: ODL = A;
