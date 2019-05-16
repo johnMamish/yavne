@@ -637,6 +637,7 @@ module cpu_2a03(input clock,
 
    //////////////// internal logic update
    integer i = 0;
+   wire    page_boundary_crossed = (pch_carry ^ IDL[7]);
    always @ (posedge clock)
      begin
      if (nreset)
@@ -652,7 +653,7 @@ module cpu_2a03(input clock,
             `INSTR_REG_SRC_INSTR_REG: instr <= instr;
             `INSTR_REG_SRC_DATA_BUS:  instr <= data;
             `INSTR_REG_SRC_DATA_BUS_IF_NOBRANCH: instr <= (do_branch) ? instr : data;
-            `INSTR_REG_SRC_DATA_BUS_IF_SAMEPAGE: instr <= (pch_carry) ? instr : data;
+            `INSTR_REG_SRC_DATA_BUS_IF_SAMEPAGE: instr <= (page_boundary_crossed) ? instr : data;
           endcase
 
           // update internal data latch
@@ -680,12 +681,11 @@ module cpu_2a03(input clock,
                end
             end
             `PC_SRC_BRANCH_CYC3:
-               if (pch_carry) begin
+               if (page_boundary_crossed) begin
                   PC <= {alu_out[7:0], PC[7:0]};
                end else begin
                   PC <= PC + 1;
                end
-            default: $display("FATAL\n");
           endcase
 
           // update cycle count
@@ -694,8 +694,7 @@ module cpu_2a03(input clock,
             `CYC_COUNT_RESET:  cyc_count <= 'b000;
             `CYC_COUNT_SET1:   cyc_count <= 'b001;
             `CYC_COUNT_SET1_IF_NOBRANCH: cyc_count <= do_branch ? (cyc_count + 1) : 'b1;
-            `CYC_COUNT_SET1_IF_SAMEPAGE: cyc_count <= (pch_carry) ? (cyc_count + 1) : 'b1;
-            default: $display("FATAL\n");
+            `CYC_COUNT_SET1_IF_SAMEPAGE: cyc_count <= (page_boundary_crossed) ? (cyc_count + 1) : 'b1;
           endcase
 
           pch_carry <= pch_carryw;
