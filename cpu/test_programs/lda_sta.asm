@@ -9,7 +9,9 @@
 
     tax
     lda #$a5
+    tay
     txa
+    tya
 
 _done:
     jmp _done

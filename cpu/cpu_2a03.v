@@ -67,7 +67,7 @@
 
 /////////////////// Y register
 `define Y_SRC_Y  2'h0
-
+`define Y_SRC_ACCUM 2'h1
 
 /////////////////// internal data latch
 `define IDL_LOW_SRC_IDL_LOW  2'b0
@@ -151,6 +151,20 @@ cyc_count_control = `CYC_COUNT_INCR;
                     `ALU_OP_NOP,                \
                     `ALU_OP2_SRC_DATA_BUS,      \
                     `CYC_COUNT_INCR}
+
+`define UOP_IFORWARD {`RW_READ,                   \
+                      `PC_SRC_PC_PLUS1,           \
+                      `INSTR_REG_SRC_DATA_BUS,    \
+                      `IDL_LOW_SRC_IDL_LOW,       \
+                      `IDL_HI_SRC_IDL_HI,         \
+                      `ACCUM_SRC_ACCUM,           \
+                      `X_SRC_X,                   \
+                      `Y_SRC_Y,                   \
+                      `ADDR_BUS_SRC_PC,           \
+                      `DATA_BUS_SRC_NONE,         \
+                      `ALU_OP_NOP,                \
+                      `ALU_OP2_SRC_DATA_BUS,      \
+                      `CYC_COUNT_SET1}
 
 `define UOP_LOAD_IDL_LOW_FROM_PCPTR   {`RW_READ,                    \
                                        `PC_SRC_PC_PLUS1,            \
@@ -353,6 +367,17 @@ module control_rom(input wire [7:0] instr,
                        'b011: `CONTROL_ROM_BUNDLE = `UOP_BRANCH_CYC3;
                        'b100: `CONTROL_ROM_BUNDLE = `UOP_BRANCH_CYC4;
                      endcase // case (cyc_count)
+                  end // case: {3'b???, 3'h4}
+
+                  // TAY, TYA
+                  {3'h4, 3'h6}: begin
+                     `CONTROL_ROM_BUNDLE = `UOP_IFORWARD;
+                     accum_src = `ACCUM_SRC_Y;
+                  end
+
+                  {3'h5, 3'h2}: begin
+                     `CONTROL_ROM_BUNDLE = `UOP_IFORWARD;
+                     y_src = `Y_SRC_ACCUM;
                   end
                 endcase
              end
@@ -473,14 +498,16 @@ module control_rom(input wire [7:0] instr,
 
              2'b10: begin
                 casez({aaa, bbb})
-                  // TXA; pipelined
-                  {3'b100, 3'h2}: begin
-                     `CONTROL_ROM_BUNDLE = `UOP_IFETCH; accum_src = `ACCUM_SRC_X; cyc_count_control = `CYC_COUNT_SET1;
+                  // TXA and TAX; pipelined
+                  {3'b10?, 3'h2}: begin
+                     `CONTROL_ROM_BUNDLE = `UOP_IFORWARD;
+                     if (aaa[0]) begin
+                       x_src = `X_SRC_ACCUM;
+                     end else begin
+                       accum_src = `ACCUM_SRC_X;
+                     end
                   end
-                  {3'b101, 3'h2}: begin
-                     `CONTROL_ROM_BUNDLE = `UOP_IFETCH; x_src = `X_SRC_ACCUM; cyc_count_control = `CYC_COUNT_SET1;
-                  end
-                endcase // case (bbb)
+                endcase // case ({aaa, bbb})
              end
 
              default: begin
@@ -700,6 +727,11 @@ module cpu_2a03(input clock,
           case(x_src)
             `X_SRC_X:     X <= X;
             `X_SRC_ACCUM: X <= A;
+          endcase
+
+          case(y_src)
+            `Y_SRC_Y:     Y <= Y;
+            `Y_SRC_ACCUM: Y <= A;
           endcase
 
           // instruction register
