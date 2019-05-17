@@ -64,8 +64,8 @@ module cpu_testbench();
         if (clock && (cpu.cyc_count <= cyc_count_prev)) begin
            $display("\n");
         end
-        $display("addrbus = $%h; databus = $%h; PC = $%h; A = $%h; X = %h; Y = %h; cyccount = %h",
-                 addr, bidir, cpu.PC, cpu.A, cpu.X, cpu.Y, cpu.cyc_count);
+        $display("addrbus = $%h; databus = $%h; PC = $%h; A = $%h; X = %h; Y = %h; cyccount = %h; %b",
+                 addr, bidir, cpu.PC, cpu.A, cpu.X, cpu.Y, cpu.cyc_count, cpu.flags);
      end
 
    integer i;

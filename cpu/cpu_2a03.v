@@ -72,6 +72,7 @@
 /////////////////// internal data latch
 `define IDL_LOW_SRC_IDL_LOW  2'b0
 `define IDL_LOW_SRC_DATA_BUS 2'b1
+`define IDL_LOW_SRC_ALU_OUT  2'h2
 
 `define IDL_HI_SRC_IDL_HI    2'b0
 `define IDL_HI_SRC_DATA_BUS  2'b1
@@ -86,13 +87,19 @@
 `define ALU_OP_FWD_OP2 4'h5     // alu_output <= alu_op2
 `define ALU_OP_CMP 4'h6
 `define ALU_OP_SBC 4'h7
+
 `define ALU_OP_NOP 4'h8
+
 `define ALU_OP_PCL 4'h9         // PCL <= PCL + IDL
 `define ALU_OP_PCH 4'ha         // PCH <= PCH + carry + idl[7] sign extend
+
+`define ALU_OP_IDLL_ADD 4'hb     // IDLL <= IDLL + op2
 
 /////////////////// ALU operand2 source
 `define ALU_OP2_SRC_DATA_BUS  2'b0
 `define ALU_OP2_SRC_IDL_LOW   2'b1
+`define ALU_OP2_SRC_X         2'h2
+`define ALU_OP2_SRC_Y         2'h3
 
 //
 `define RW_WRITE 1'b0
@@ -283,6 +290,33 @@ cyc_count_control = `CYC_COUNT_INCR;
                                `ALU_OP2_SRC_DATA_BUS,      \
                                `CYC_COUNT_RESET}
 
+`define UOP_ALUOP_ACCUM_DATABUS {`RW_READ,               \
+                                 `PC_SRC_PC_PLUS1,    \
+                                 `INSTR_REG_SRC_INSTR_REG, \
+                                 `IDL_LOW_SRC_IDL_LOW,\
+                                 `IDL_HI_SRC_IDL_HI,  \
+                                 `ACCUM_SRC_ALU,      \
+                                 `X_SRC_X,                   \
+                                 `Y_SRC_Y,                   \
+                                 `ADDR_BUS_SRC_PC,    \
+                                 `DATA_BUS_SRC_NONE,  \
+                                 `ALU_OP_NOP,         \
+                                 `ALU_OP2_SRC_DATA_BUS,      \
+                                 `CYC_COUNT_RESET}
+
+`define UOP_ALUOP_ADD_IDL {`RW_READ,                   \
+                           `PC_SRC_PC,                 \
+                           `INSTR_REG_SRC_INSTR_REG,   \
+                           `IDL_LOW_SRC_ALU_OUT,       \
+                           `IDL_HI_SRC_IDL_HI,         \
+                           `ACCUM_SRC_ACCUM,           \
+                           `X_SRC_X,                   \
+                           `Y_SRC_Y,                   \
+                           `ADDR_BUS_SRC_PC,           \
+                           `DATA_BUS_SRC_NONE,         \
+                           `ALU_OP_IDLL_ADD,                \
+                           `ALU_OP2_SRC_DATA_BUS,      \
+                           `CYC_COUNT_INCR}
 
 /**
  * A lot of the instruction decoding comes from the tables at the bottom of
@@ -476,16 +510,36 @@ module control_rom(input wire [7:0] instr,
                      endcase
                   end
 
-`ifdef NOTDEFINED
                   // addr mode: indirect, Y indexed
                   3'b100: begin
+                     `CONTROL_ROM_BUNDLE = 'hf00fba11;
                   end
 
                   // addr mode: zeropage, X indexed
                   3'b101: begin
+                     case(cyc_count)
+                       'b001: `CONTROL_ROM_BUNDLE = `UOP_LOAD_IDL_LOW_FROM_PCPTR;
+                       // IDL_low <= X + IDL_low
+                       'b010: begin
+                          `CONTROL_ROM_BUNDLE = `UOP_ALUOP_ADD_IDL;
+                          alu_op2_src = `ALU_OP2_SRC_X;
+                       end
+                       'b011: begin
+                          `CONTROL_ROM_BUNDLE = `UOP_ALUOP_ACCUM_DATABUS;
+                          pc_src = `PC_SRC_PC;
+                          addr_bus_src = `ADDR_BUS_SRC_IDL_LOW;
+                          alu_op = {1'b0, aaa};
+
+                          if (aaa == 'h4) begin
+                             rw = `RW_WRITE;
+                          end
+                       end
+                     endcase
                   end
 
+`ifdef NOTDEFINED
                   // addr mode: absolute, X indexed
+                  // note: no sign extension required, just carry.
                   3'b110: begin
                   end
 
@@ -620,6 +674,8 @@ module cpu_2a03(input clock,
         case(alu_op2_src)
           `ALU_OP2_SRC_DATA_BUS: alu_op2 = data;
           `ALU_OP2_SRC_IDL_LOW:  alu_op2 = IDL[7:0];
+          `ALU_OP2_SRC_X:        alu_op2 = X;
+          `ALU_OP2_SRC_Y:        alu_op2 = Y;
         endcase
 
         alu_flags_overwrite = 'h0;
@@ -667,6 +723,8 @@ module cpu_2a03(input clock,
 
           `ALU_OP_PCL: {pch_carryw, alu_out} = PC[7:0] + IDL[7:0];
           `ALU_OP_PCH: alu_out = PC[15:8] + (pch_carry + {8{IDL[7]}});
+
+          `ALU_OP_IDLL_ADD: {pch_carryw, alu_out} = IDL[7:0] + alu_op2;
 
           default: alu_out = 8'hzz;
         endcase
@@ -746,6 +804,7 @@ module cpu_2a03(input clock,
           case(idl_low_src)
             `IDL_LOW_SRC_IDL_LOW:  IDL[7:0] <= IDL[7:0];
             `IDL_LOW_SRC_DATA_BUS: IDL[7:0] <= data[7:0];
+            `IDL_LOW_SRC_ALU_OUT:  IDL[7:0] <= alu_out;
           endcase
           case(idl_hi_src)
             `IDL_HI_SRC_IDL_HI:   IDL[15:8] <= IDL[15:8];
@@ -801,6 +860,7 @@ module cpu_2a03(input clock,
 
           pch_carry <= 'b0;
           instr     <= 'b0;
+          flags     <= 'b0;
           IDL       <= 'b0;
           ODL       <= 'b0;
           cyc_count <= 'b0;
