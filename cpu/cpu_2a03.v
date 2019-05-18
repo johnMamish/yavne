@@ -17,6 +17,9 @@
 // otherwise, propagate carry to PCH.
 `define PC_SRC_BRANCH_CYC3 4'h4
 
+// signal to find errors in simulation
+`define PC_SRC_LOAD_FEFE 4'h7
+
 // if a branch is taken, store PCL <= PCL + IDL_low
 // else, PC <= PC+1 and load next instr
 `define PC_SRC_BRANCH_ON_PLUS           4'h8
@@ -94,6 +97,7 @@
 `define ALU_OP_PCH 4'ha         // PCH <= PCH + carry + idl[7] sign extend
 
 `define ALU_OP_IDLL_ADD 4'hb     // IDLL <= IDLL + op2
+`define ALU_OP_IDLH_CARRY 4'hc   // IDLH <= IDLH + carry
 
 /////////////////// ALU operand2 source
 `define ALU_OP2_SRC_DATA_BUS  2'b0
@@ -105,14 +109,19 @@
 `define RW_WRITE 1'b0
 `define RW_READ  1'b1
 
+//
+`define RW_CONTROL_WRITE                  2'h0
+`define RW_CONTROL_READ                 2'h1
+`define RW_CONTROL_WRITE_WHEN_PAGE_READY 2'h2
 
 `define CYC_COUNT_INCR  3'h0
 `define CYC_COUNT_RESET 3'h1
 `define CYC_COUNT_SET1  3'h2
 // set cycle count to 1 if branch wasn't taken.
 `define CYC_COUNT_SET1_IF_NOBRANCH 3'h3
-// set cycle count to 1 if PCL + 1 has no carry.
-`define CYC_COUNT_SET1_IF_SAMEPAGE 3'h4
+// reset cycle count if pch_carry isn't set
+`define CYC_COUNT_RESET_IF_IDX_SAMEPAGE 3'h4
+`define CYC_COUNT_SET1_IF_PC_SAMEPAGE 3'h5
 
 
 `ifdef NOTDEFINED
@@ -256,7 +265,7 @@ cyc_count_control = `CYC_COUNT_INCR;
                          `DATA_BUS_SRC_NONE,        \
                          `ALU_OP_PCH,               \
                          `ALU_OP2_SRC_DATA_BUS,     \
-                         `CYC_COUNT_SET1_IF_SAMEPAGE}
+                         `CYC_COUNT_SET1_IF_PC_SAMEPAGE}
 
 // TODO
 `define UOP_BRANCH_CYC4 {`RW_READ,                  \
@@ -334,7 +343,7 @@ cyc_count_control = `CYC_COUNT_INCR;
  */
 module control_rom(input wire [7:0] instr,
                    input wire [2:0] cyc_count,
-                   output reg       rw,
+                   output reg [1:0] rw_control,
                    output reg [3:0] pc_src,
                    output reg [2:0] instr_reg_src,
                    output reg [1:0] idl_low_src,
@@ -543,7 +552,28 @@ module control_rom(input wire [7:0] instr,
                   // note: no sign extension required, just carry.
                   3'b11?: begin
                      case(cyc_count)
-                       'b001: `CONTROL_ROM_BUNDLE = 'h0;
+                       'b001: `CONTROL_ROM_BUNDLE = `UOP_LOAD_IDL_LOW_FROM_PCPTR;
+                       'b010: `CONTROL_ROM_BUNDLE = `UOP_LOAD_IDL_HI_FROM_PCPTR;
+
+                       // IDLL <= X,Y + IDLL
+                       'b011: begin
+                          `CONTROL_ROM_BUNDLE = `UOP_ALUOP_ADD_IDL;
+                          alu_op2_src = (bbb[0]) ? (`ALU_OP2_SRC_X) : (`ALU_OP2_SRC_Y);
+                       end
+
+                       // addrbus = IDL
+                       // if no carry
+                       //    A <= A op databus
+                       //
+                       // IDLH <= carry + IDLH
+                       'b100: begin
+                          `CONTROL_ROM_BUNDLE = `UOP_ALUOP_ACCUM_DATABUS;
+                          alu_op = {1'b0, aaa};
+                       end
+
+                       'b101: begin
+                          `CONTROL_ROM_BUNDLE = 'h0;
+                       end
                      endcase // case (cyc_count)
                   end
                 endcase // case (bbb)
@@ -629,6 +659,7 @@ module cpu_2a03(input clock,
    reg [2:0] cyc_count;
 
    //////////////// control rom
+   wire [1:0] rw_control;
    wire [3:0] pc_src;
    wire [2:0] instr_reg_src;
    wire [1:0] idl_low_src;
@@ -643,7 +674,7 @@ module cpu_2a03(input clock,
    wire [2:0] cyc_count_control;
    control_rom cr(.instr(instr),
                   .cyc_count(cyc_count),
-                  .rw(rw),
+                  .rw_control(rw_control),
                   .pc_src(pc_src),
                   .instr_reg_src(instr_reg_src),
                   .idl_low_src(idl_low_src),
@@ -662,6 +693,7 @@ module cpu_2a03(input clock,
    // TODO: flags register'
    // TODO: figure out difference between carry and overflow flags!
    // NV-BDIZC
+   // TODO: pch_carry signals are doing double-duty for program counter and IDL. needs rename.
    reg       pch_carryw;    // wire
    reg       pch_carry;     // latch latched in always @ (posedge clk) block
    reg [7:0] alu_out;
@@ -722,10 +754,9 @@ module cpu_2a03(input clock,
 
           `ALU_OP_PCL: {pch_carryw, alu_out} = PC[7:0] + IDL[7:0];
           `ALU_OP_PCH: alu_out = PC[15:8] + (pch_carry + {8{IDL[7]}});
-
           `ALU_OP_IDLL_ADD: {pch_carryw, alu_out} = IDL[7:0] + alu_op2;
-
-          default: alu_out = 8'hzz;
+          `ALU_OP_IDLH_ADD: alu_out = IDL[15:8] + pch_carry;
+          default: alu_out = 8'ha5;
         endcase
      end
 
@@ -765,6 +796,22 @@ module cpu_2a03(input clock,
           2'b11: do_branchp = flags[1];
         endcase
         do_branch = (pc_src[0]) ? (do_branchp) : (~do_branchp);
+     end
+
+   //////////////// R/W signal
+   always @ *
+     begin
+        case(rw_control)
+          `RW_CONTROL_WRITE:      rw <= `RW_WRITE;
+          `RW_CONTROL_READ:       rw <= `RW_READ;
+          `RW_CONTROL_WRITE_WHEN_PAGE_READY: begin
+             if (pch_carry) begin
+                rw <= `RW_READ;
+             end else begin
+                rw <= `RW_WRITE;
+             end
+          end
+        endcase
      end
 
    //////////////// internal logic update
@@ -808,6 +855,7 @@ module cpu_2a03(input clock,
           case(idl_hi_src)
             `IDL_HI_SRC_IDL_HI:   IDL[15:8] <= IDL[15:8];
             `IDL_HI_SRC_DATA_BUS: IDL[15:8] <= data[7:0];
+            `IDL_HI_SRC_ALU_OUT: IDL[15:8] <= alu_out;
           endcase
 
           // update program counter
@@ -838,7 +886,8 @@ module cpu_2a03(input clock,
             `CYC_COUNT_RESET:  cyc_count <= 'b000;
             `CYC_COUNT_SET1:   cyc_count <= 'b001;
             `CYC_COUNT_SET1_IF_NOBRANCH: cyc_count <= do_branch ? (cyc_count + 1) : 'b1;
-            `CYC_COUNT_SET1_IF_SAMEPAGE: cyc_count <= (page_boundary_crossed) ? (cyc_count + 1) : 'b1;
+            `CYC_COUNT_RESET_IF_IDX_SAMEPAGE: cyc_count <= pch_carry ? cyc_count + 1 : 'b1;
+            `CYC_COUNT_SET1_IF_PC_SAMEPAGE: cyc_count <= page_boundary_crossed ? cyc_count + 1 : 'b1;
           endcase
 
           pch_carry <= pch_carryw;
