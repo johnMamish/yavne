@@ -7,7 +7,7 @@
 _loop:
     ;; add
     lda _result
-    adc $1c, x
+    adc $1d, x
     sta _result
 
     ;; increment index
@@ -16,10 +16,13 @@ _loop:
     sta _index
     tax
 
+    sta $80, x
+
+    lda $85
+
     jmp _loop
 
-_done:
-    jmp _done
+
 
 _index:
     .byte $00

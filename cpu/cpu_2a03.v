@@ -532,21 +532,20 @@ module control_rom(input wire [7:0] instr,
 
                           if (aaa == 'h4) begin
                              rw = `RW_WRITE;
+                             accum_src = `ACCUM_SRC_ACCUM;
+                             data_bus_src = `DATA_BUS_SRC_ACCUM;
                           end
                        end
                      endcase
                   end
 
-`ifdef NOTDEFINED
-                  // addr mode: absolute, X indexed
+                  // addr mode: absolute, X or Y indexed
                   // note: no sign extension required, just carry.
-                  3'b110: begin
+                  3'b11?: begin
+                     case(cyc_count)
+                       'b001: `CONTROL_ROM_BUNDLE = 'h0;
+                     endcase // case (cyc_count)
                   end
-
-                  // addr mode: absolute, Y indexed
-                  3'b111: begin
-                  end
-`endif
                 endcase // case (bbb)
              end // case: 2'b01
 
