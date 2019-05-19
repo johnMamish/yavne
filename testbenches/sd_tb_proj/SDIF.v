@@ -29,8 +29,9 @@ module SDIF(input wire clock,
         reg [7:0] rb;
         wire [46:0] serialized_packet;
         assign serialized_packet = {com, addr, 7'd0};
-        assign crc = {crc_reg, 1'b1};
-          
+        assign crc =  com == (8'h40  | com_reset) ? 8'h95 :
+                      com == (8'h40  | com_vc)    ? 8'h87  :
+							 com == (8'h40  | com_init)  ? 8'hfe  : 8'h65;
         reg next_ss;
         reg ib_v,next_ib_v;
         wire byte_ready;
@@ -74,7 +75,7 @@ module SDIF(input wire clock,
          parameter state_reset2 = 5'd2;
          parameter state_reset3 = 5'd3;
          parameter state_reset4 = 5'd4;
-         parameter state_reset5 = 5'd5;
+         parameter state_wait= 5'd5;
          parameter state_idle   = 5'd6;
          parameter state_read0  = 5'd7;
          parameter state_read1  = 5'd8;
@@ -161,8 +162,8 @@ module SDIF(input wire clock,
                         next_state = state_compute_crc;
                         next_ib_v = 0;
                         next_ss = 1;
-                                next_com = com_reset;
-                                next_pts = state_reset1;
+                        next_com = com_reset;
+                        next_pts = state_reset1;
                     end
                 end
 
@@ -173,96 +174,74 @@ module SDIF(input wire clock,
                    next_ss = (crc_counter == 0) ? 0 : 1'b1;
                     ncv = 0;
                     spir = 1'b1;
-						  next_ib_v = (crc_counter == 0) ? 1'b1 : 1'b0;
+					next_ib_v = (crc_counter == 0) ? 1'b1 : 1'b0;
                     next_state = (crc_counter == 0) ? state_reset2 : state_reset1;
                 end
                 
                 state_reset2: begin
-                    if ( cv > 6 && rb == 8'd1) begin
+                    if ( cv > 6 && rb != 8'hff) begin
                         next_ss = 1;
                         ncv = 7;
                         spir = 1;
                         next_state = state_compute_crc;
-                        next_pts = state_reset3;
+                        next_pts = state_reset4;
                         next_addr = 32'h000001aa;
                         next_com = com_vc;
-                    end else if (cv > 50) begin
-                         next_state = state_reset1;
+                    end else if (cv > 54) begin
+                         next_state = state_wait;
+						 next_pts = state_reset2;
                       end
                                 
                 end
 
-                state_reset3: begin 
-                    next_ss = (crc_counter == 0) ? 0 : 1'b1;
+                state_wait: begin 
+                    next_ss = (crc_counter == 0) ? 0 : 1;
                     ncv = 0;
-                    spir = 1'b1;
-					     next_ib_v = (crc_counter == 0) ? 1'b1 : 1'b0;
-                    next_state = (crc_counter == 0) ? state_reset4 : state_reset3;
+                    spir = 1;
+						  next_ib_v = (crc_counter == 0) ? 1 : 0;
+						  
+						  
+                    next_state = (crc_counter == 0) ? pts : state_wait;
                 end
 
                 state_reset4: begin
                     if ( cv > 6 && cv < 16 && rb == 8'd1) begin
-                        next_state = state_reset5;
-                        spir = 1;
-                        ncv = 0; 
-                        next_ss = 1;
-                        next_ib_v = 0; 
+					    next_state = state_wait; 
+                        next_pts = state_reset6;
                         next_addr = 0;
+								spir = 1;
                     end else if (cv >= 16) begin
-                        next_state = state_reset3;
-                        next_ss = 1'b1;
-                        spir = 1'b1;
+                        next_state = state_wait;
+					    next_pts = state_reset4;
                     end
-                end
-
-                state_reset5: begin
-                    next_com = com_55;
-                    next_ss = (crc_counter == 0) ? 0 : 1'b1;
-                    ncv = 0;
-                    spir = 1'b1;
-                    next_ib_v = (crc_counter == 0) ? 1'b1 : 1'b0;
-                    next_state = (crc_counter == 0) ? state_reset6 : state_reset5;
                 end
 
 
                 state_reset6: begin
                     if ( cv > 6 && cv < 16 && (rb == 8'd1 || rb == 8'd5)) begin
-                        next_state = state_reset7;
-                        spir = 1;
-                        ncv = 0; 
-                        next_ss = 1;
-                        next_ib_v = 1;
+                        next_state = state_wait;
+						next_pts = state_reset8;
                         next_com = (rb == 8'd1) ? com_41 : com_init;
                         next_addr = (rb == 8'd1) ? 32'h40000000 : 0;
                     end else if (cv >= 16) begin
-                        next_state = state_reset5;
-                        next_ss = 1'b1;
-                        spir = 1'b1;
+                        next_state = state_wait;
+						next_com = com_55;
+						next_pts = state_reset6;
                     end
-                end
-
-                state_reset7: begin
-                    next_ss = (crc_counter == 0) ? 0 : 1'b1;
-                    ncv = 0;
-                    spir = 1'b1;
-                    next_ib_v = (crc_counter == 0) ? 1'b1 : 1'b0;
-                    next_state = (crc_counter == 0) ? state_reset8 : state_reset7;
                 end
 
                 
                 state_reset8: begin
                     if ( cv > 6 && cv < 16 && (rb == 8'd0 || rb == 8'd5)) begin
-                        next_state = (rb == 8'd0) ? state_idle : state_reset7;
-                        spir = 1;
+                        next_state = (rb == 8'd0) ? state_idle : state_wait;
                         ncv = 0; 
-                        next_ss = 1;
-                        next_ib_v = 1;
                         next_com = (rb == 8'd0) ? com_41 : com_init;
                         next_addr = 0; 
                     end else if (cv >= 16) begin
-                        next_state = state_reset5;
-                        next_ss = 1'b1;
-                        spir = 1'b1;
+                        next_state = state_wait;
+					    next_com = com_55;
+						next_pts = state_reset6;
+                       
                     end
                 end
 

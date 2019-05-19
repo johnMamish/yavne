@@ -23,7 +23,7 @@ assign GPIO[3] = SD_SS;
 
 wire clock;
 assign LED_RED[7] = clockdiv[23];
-assign clock = clockdiv[5];
+assign clock = clockdiv[4];
 
 reg [31:0] in_addr;
 wire [7:0] next_state;
