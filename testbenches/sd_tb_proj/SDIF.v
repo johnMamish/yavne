@@ -13,7 +13,6 @@ module SDIF(input wire clock,
             output wire sclk,
             output wire mosi, 
             output reg [4:0] state,
-            output reg [5:0] crc_counter,
             output wire[7:0] crc
 
 );
@@ -24,7 +23,7 @@ module SDIF(input wire clock,
         reg [4:0] next_pts, pts, next_state;
         reg [9:0] cv, ncv;
         reg [7:0] com, next_com;
-        reg [7:0] next_crc_counter;
+        reg [8:0] crc_counter;
         reg [31:0] addr, next_addr;
         wire [7:0] rbw, ib_in;
         reg [7:0] rb;
@@ -138,7 +137,7 @@ module SDIF(input wire clock,
                 next_ib_v = ib_v;
                 next_pts = pts;
                 next_crc_reg = crc_reg;
-                next_crc_counter = crc_counter;
+                
             if(byte_ready) 
                ncv = cv + 1; 
             
@@ -148,7 +147,7 @@ module SDIF(input wire clock,
                     state_compute_crc: begin
                         if (crc_counter < 6'd47) begin
                             //this is definitely inferring a mux here, but its fine
-                            next_crc_counter = crc_counter + 1'b1;
+                            
                             next_crc_reg = {crc_reg[5:0], serialized_packet[6'd46 -crc_counter]} ^ (crc_reg[6] ? 7'h09 : 7'd0); 
                         end
                         else begin
@@ -187,7 +186,7 @@ module SDIF(input wire clock,
                         next_pts = state_reset3;
                         next_addr = 32'h000001aa;
                         next_com = com_vc;
-                    end else if (cv > 20) begin
+                    end else if (cv > 50) begin
                          next_state = state_reset1;
                       end
                                 
@@ -197,7 +196,7 @@ module SDIF(input wire clock,
                     next_ss = (crc_counter == 0) ? 0 : 1'b1;
                     ncv = 0;
                     spir = 1'b1;
-					next_ib_v = (crc_counter == 0) ? 1'b1 : 1'b0;
+					     next_ib_v = (crc_counter == 0) ? 1'b1 : 1'b0;
                     next_state = (crc_counter == 0) ? state_reset4 : state_reset3;
                 end
 
@@ -326,6 +325,8 @@ module SDIF(input wire clock,
                 state_fail: begin
                     next_state = state_fail;
                 end
+
+
                 default:
                     next_state = state_fail;
 
