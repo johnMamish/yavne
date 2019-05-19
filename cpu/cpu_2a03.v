@@ -79,6 +79,7 @@
 
 `define IDL_HI_SRC_IDL_HI    2'b0
 `define IDL_HI_SRC_DATA_BUS  2'b1
+`define IDL_HI_SRC_IDL_HI_CARRY 2'h2   // gross hack to save on confusing alu muxing.
 
 /////////////////// ALU opcodes
 // these decide what gets put on the output of the ALU
@@ -99,15 +100,25 @@
 `define ALU_OP_IDLL_ADD 4'hb     // IDLL <= IDLL + op2
 `define ALU_OP_IDLH_CARRY 4'hc   // IDLH <= IDLH + carry
 
+
+/////////////////// ALU operand1 source
+`define ALU_OP1_SRC_A         3'h0
+`define ALU_OP1_SRC_IDLH      3'h1
+
 /////////////////// ALU operand2 source
-`define ALU_OP2_SRC_DATA_BUS  2'b0
-`define ALU_OP2_SRC_IDL_LOW   2'b1
-`define ALU_OP2_SRC_X         2'h2
-`define ALU_OP2_SRC_Y         2'h3
+`define ALU_OP2_SRC_DATA_BUS  3'h0
+`define ALU_OP2_SRC_IDL_LOW   3'h1
+`define ALU_OP2_SRC_X         3'h2
+`define ALU_OP2_SRC_Y         3'h3
+
+// this is used for "correcting" operations which have a
+`define ALU_OP2_SRC_DATA_IF_READY_ELSE_PCH 3'h4
+
 
 //
 `define RW_WRITE 1'b0
 `define RW_READ  1'b1
+
 
 //
 `define RW_CONTROL_WRITE                  2'h0
@@ -149,6 +160,7 @@ cyc_count_control = `CYC_COUNT_INCR;
                              addr_bus_src,  \
                              data_bus_src,  \
                              alu_op,        \
+                             alu_op1_src,   \
                              alu_op2_src,   \
                              cyc_count_control}
 
@@ -165,6 +177,7 @@ cyc_count_control = `CYC_COUNT_INCR;
                     `ADDR_BUS_SRC_PC,           \
                     `DATA_BUS_SRC_NONE,         \
                     `ALU_OP_NOP,                \
+                    `ALU_OP1_SRC_A,             \
                     `ALU_OP2_SRC_DATA_BUS,      \
                     `CYC_COUNT_INCR}
 
@@ -179,6 +192,7 @@ cyc_count_control = `CYC_COUNT_INCR;
                       `ADDR_BUS_SRC_PC,           \
                       `DATA_BUS_SRC_NONE,         \
                       `ALU_OP_NOP,                \
+                      `ALU_OP1_SRC_A,             \
                       `ALU_OP2_SRC_DATA_BUS,      \
                       `CYC_COUNT_SET1}
 
@@ -193,6 +207,7 @@ cyc_count_control = `CYC_COUNT_INCR;
                                        `ADDR_BUS_SRC_PC,            \
                                        `DATA_BUS_SRC_NONE,          \
                                        `ALU_OP_NOP,                 \
+                                       `ALU_OP1_SRC_A,             \
                                        `ALU_OP2_SRC_DATA_BUS,       \
                                        `CYC_COUNT_INCR}
 
@@ -207,6 +222,7 @@ cyc_count_control = `CYC_COUNT_INCR;
                                         `ADDR_BUS_SRC_PC,           \
                                         `DATA_BUS_SRC_NONE,         \
                                         `ALU_OP_NOP,                \
+                                       `ALU_OP1_SRC_A,             \
                                         `ALU_OP2_SRC_DATA_BUS,      \
                                         `CYC_COUNT_INCR}
 
@@ -222,6 +238,7 @@ cyc_count_control = `CYC_COUNT_INCR;
                                            `ADDR_BUS_SRC_PC,           \
                                            `DATA_BUS_SRC_NONE,         \
                                            `ALU_OP_NOP,                \
+                                           `ALU_OP1_SRC_A,             \
                                            `ALU_OP2_SRC_DATA_BUS,      \
                                            `CYC_COUNT_RESET}
 
@@ -236,6 +253,7 @@ cyc_count_control = `CYC_COUNT_INCR;
                                `ADDR_BUS_SRC_IDL,         \
                                `DATA_BUS_SRC_NONE,        \
                                `ALU_OP_NOP,               \
+                               `ALU_OP1_SRC_A,             \
                                `ALU_OP2_SRC_DATA_BUS,     \
                                `CYC_COUNT_INCR}
 
@@ -250,6 +268,7 @@ cyc_count_control = `CYC_COUNT_INCR;
                          `ADDR_BUS_SRC_PC,          \
                          `DATA_BUS_SRC_NONE,        \
                          `ALU_OP_PCL,               \
+                         `ALU_OP1_SRC_A,             \
                          `ALU_OP2_SRC_DATA_BUS,     \
                          `CYC_COUNT_SET1_IF_NOBRANCH}
 
@@ -354,7 +373,8 @@ module control_rom(input wire [7:0] instr,
                    output reg [2:0] addr_bus_src,
                    output reg [1:0] data_bus_src,
                    output reg [3:0] alu_op,
-                   output reg [1:0] alu_op2_src,
+                   output reg [1:0] alu_op1_src,
+                   output reg [2:0] alu_op2_src,
                    output reg [2:0] cyc_count_control);
 
    reg [2:0] aaa;
@@ -553,14 +573,27 @@ module control_rom(input wire [7:0] instr,
                   3'b11?: begin
                      case(cyc_count)
                        'b001: `CONTROL_ROM_BUNDLE = `UOP_LOAD_IDL_LOW_FROM_PCPTR;
-                       'b010: `CONTROL_ROM_BUNDLE = `UOP_LOAD_IDL_HI_FROM_PCPTR;
 
-                       // IDLL <= X,Y + IDLL
-                       'b011: begin
-                          `CONTROL_ROM_BUNDLE = `UOP_ALUOP_ADD_IDL;
+                       // IDLL <= X,Y + IDLL; IDLH <= *PC
+                       'b010: begin
+                          `CONTROL_ROM_BUNDLE = `UOP_LOAD_IDL_HI_FROM_PCPTR;
+                          idl_low_src = `IDL_LOW_SRC_ALU_OUT;
                           alu_op2_src = (bbb[0]) ? (`ALU_OP2_SRC_X) : (`ALU_OP2_SRC_Y);
                        end
 
+                       'b011: begin
+                          `CONTROL_ROM_BUNDLE = `UOP_ALUOP_ACCUM_DATABUS;
+
+                          alu_op2 = `ALU_OP2_SRC_DATA;
+                          alu_op = {1'b0, aaa};
+                          if (aaa == 'h4) begin
+                             rw = `RW_CONTROL_WRITE_WHEN_PAGE_READY;
+                             accum_src = `ACCUM_SRC_ACCUM;
+                             data_bus_src = `DATA_BUS_SRC_ACCUM;
+                          end
+                       end
+
+                       // the problem is that aluop2 depends on whether there was a carry or not
                        // addrbus = IDL
                        // if no carry
                        //    A <= A op databus
@@ -568,11 +601,16 @@ module control_rom(input wire [7:0] instr,
                        // IDLH <= carry + IDLH
                        'b100: begin
                           `CONTROL_ROM_BUNDLE = `UOP_ALUOP_ACCUM_DATABUS;
+
                           alu_op = {1'b0, aaa};
+                          if (aaa == 'h4) begin
+                             rw = `RW_WRITE;
+                             accum_src = `ACCUM_SRC_ACCUM;
+                             data_bus_src = `DATA_BUS_SRC_ACCUM;
+                          end
                        end
 
                        'b101: begin
-                          `CONTROL_ROM_BUNDLE = 'h0;
                        end
                      endcase // case (cyc_count)
                   end
@@ -581,7 +619,7 @@ module control_rom(input wire [7:0] instr,
 
              2'b10: begin
                 casez({aaa, bbb})
-                  // TXA and TAX; pipelined
+                  // TXA and TAX; "pipelined"
                   {3'b10?, 3'h2}: begin
                      `CONTROL_ROM_BUNDLE = `UOP_IFORWARD;
                      if (aaa[0]) begin
@@ -670,7 +708,7 @@ module cpu_2a03(input clock,
    wire [2:0] addr_bus_src;
    wire [1:0] data_bus_src;
    wire [3:0] alu_op;
-   wire [1:0] alu_op2_src;
+   wire [2:0] alu_op2_src;
    wire [2:0] cyc_count_control;
    control_rom cr(.instr(instr),
                   .cyc_count(cyc_count),
@@ -707,6 +745,8 @@ module cpu_2a03(input clock,
           `ALU_OP2_SRC_IDL_LOW:  alu_op2 = IDL[7:0];
           `ALU_OP2_SRC_X:        alu_op2 = X;
           `ALU_OP2_SRC_Y:        alu_op2 = Y;
+          `ALU_OP2_SRC_DATA_IF_READY_ELSE_Y: alu_op2 = pch_carry ? Y : A;
+          `ALU_OP2_SRC_DATA_IF_READY_ELSE_X: alu_op2 = pch_carry ? X : A;
         endcase
 
         alu_flags_overwrite = 'h0;
