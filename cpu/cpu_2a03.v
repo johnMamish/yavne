@@ -102,8 +102,8 @@
 
 
 /////////////////// ALU operand1 source
-`define ALU_OP1_SRC_A         3'h0
-`define ALU_OP1_SRC_IDLH      3'h1
+`define ALU_OP1_SRC_A         2'h0
+`define ALU_OP1_SRC_IDLH      2'h1
 
 /////////////////// ALU operand2 source
 `define ALU_OP2_SRC_DATA_BUS  3'h0
@@ -121,8 +121,8 @@
 
 
 //
-`define RW_CONTROL_WRITE                  2'h0
-`define RW_CONTROL_READ                 2'h1
+`define RW_CONTROL_WRITE                 2'h0
+`define RW_CONTROL_READ                  2'h1
 `define RW_CONTROL_WRITE_WHEN_PAGE_READY 2'h2
 
 `define CYC_COUNT_INCR  3'h0
@@ -149,7 +149,7 @@ cyc_count_control = `CYC_COUNT_INCR;
 `endif
 
 /////////////////// "predefined" micro-ops
-`define CONTROL_ROM_BUNDLE  {rw,            \
+`define CONTROL_ROM_BUNDLE  {rw_control,    \
                              pc_src,        \
                              instr_reg_src, \
                              idl_low_src,   \
@@ -166,7 +166,7 @@ cyc_count_control = `CYC_COUNT_INCR;
 
 `define IDL_CONTROL_BUNDLE {idl_low_src, idl_hi_src}
 
-`define UOP_IFETCH {`RW_READ,                   \
+`define UOP_IFETCH {`RW_CONTROL_READ,                   \
                     `PC_SRC_PC_PLUS1,           \
                     `INSTR_REG_SRC_DATA_BUS,    \
                     `IDL_LOW_SRC_IDL_LOW,       \
@@ -181,7 +181,7 @@ cyc_count_control = `CYC_COUNT_INCR;
                     `ALU_OP2_SRC_DATA_BUS,      \
                     `CYC_COUNT_INCR}
 
-`define UOP_IFORWARD {`RW_READ,                   \
+`define UOP_IFORWARD {`RW_CONTROL_READ,                   \
                       `PC_SRC_PC_PLUS1,           \
                       `INSTR_REG_SRC_DATA_BUS,    \
                       `IDL_LOW_SRC_IDL_LOW,       \
@@ -196,7 +196,7 @@ cyc_count_control = `CYC_COUNT_INCR;
                       `ALU_OP2_SRC_DATA_BUS,      \
                       `CYC_COUNT_SET1}
 
-`define UOP_LOAD_IDL_LOW_FROM_PCPTR   {`RW_READ,                    \
+`define UOP_LOAD_IDL_LOW_FROM_PCPTR   {`RW_CONTROL_READ,                    \
                                        `PC_SRC_PC_PLUS1,            \
                                        `INSTR_REG_SRC_INSTR_REG,    \
                                        `IDL_LOW_SRC_DATA_BUS,       \
@@ -211,7 +211,7 @@ cyc_count_control = `CYC_COUNT_INCR;
                                        `ALU_OP2_SRC_DATA_BUS,       \
                                        `CYC_COUNT_INCR}
 
-`define UOP_LOAD_IDL_HI_FROM_PCPTR    {`RW_READ,                    \
+`define UOP_LOAD_IDL_HI_FROM_PCPTR    {`RW_CONTROL_READ,                    \
                                         `PC_SRC_PC_PLUS1,           \
                                         `INSTR_REG_SRC_INSTR_REG,   \
                                         `IDL_LOW_SRC_IDL_LOW,       \
@@ -227,7 +227,7 @@ cyc_count_control = `CYC_COUNT_INCR;
                                         `CYC_COUNT_INCR}
 
 
-`define UOP_LOAD_PC_FROM_PCPTR_IDL_LOW    {`RW_READ,                   \
+`define UOP_LOAD_PC_FROM_PCPTR_IDL_LOW    {`RW_CONTROL_READ,                   \
                                            `PCH_SRC_DATABUS_PCL_SRC_IDLL,           \
                                            `INSTR_REG_SRC_INSTR_REG,   \
                                            `IDL_LOW_SRC_IDL_LOW,       \
@@ -242,7 +242,7 @@ cyc_count_control = `CYC_COUNT_INCR;
                                            `ALU_OP2_SRC_DATA_BUS,      \
                                            `CYC_COUNT_RESET}
 
-`define UOP_LOAD_IDL_INTO_PC  {`RW_READ,                  \
+`define UOP_LOAD_IDL_INTO_PC  {`RW_CONTROL_READ,                  \
                                `PC_SRC_IDL,         \
                                `INSTR_REG_SRC_INSTR_REG,  \
                                `IDL_LOW_SRC_IDL_LOW,      \
@@ -257,7 +257,7 @@ cyc_count_control = `CYC_COUNT_INCR;
                                `ALU_OP2_SRC_DATA_BUS,     \
                                `CYC_COUNT_INCR}
 
-`define UOP_BRANCH_CYC2 {`RW_READ,                  \
+`define UOP_BRANCH_CYC2 {`RW_CONTROL_READ,                  \
                          `PC_SRC_BRANCH_ON_PLUS,    \
                          `INSTR_REG_SRC_DATA_BUS_IF_NOBRANCH,  \
                          `IDL_LOW_SRC_IDL_LOW,      \
@@ -272,7 +272,7 @@ cyc_count_control = `CYC_COUNT_INCR;
                          `ALU_OP2_SRC_DATA_BUS,     \
                          `CYC_COUNT_SET1_IF_NOBRANCH}
 
-`define UOP_BRANCH_CYC3 {`RW_READ,                  \
+`define UOP_BRANCH_CYC3 {`RW_CONTROL_READ,                  \
                          `PC_SRC_BRANCH_CYC3,       \
                          `INSTR_REG_SRC_DATA_BUS_IF_SAMEPAGE, \
                          `IDL_LOW_SRC_IDL_LOW,      \
@@ -283,11 +283,12 @@ cyc_count_control = `CYC_COUNT_INCR;
                          `ADDR_BUS_SRC_PC,          \
                          `DATA_BUS_SRC_NONE,        \
                          `ALU_OP_PCH,               \
+                         `ALU_OP1_SRC_A,             \
                          `ALU_OP2_SRC_DATA_BUS,     \
                          `CYC_COUNT_SET1_IF_PC_SAMEPAGE}
 
 // TODO
-`define UOP_BRANCH_CYC4 {`RW_READ,                  \
+`define UOP_BRANCH_CYC4 {`RW_CONTROL_READ,                  \
                          `PC_SRC_PC_PLUS1,       \
                          `INSTR_REG_SRC_DATA_BUS,   \
                          `IDL_LOW_SRC_IDL_LOW,      \
@@ -298,13 +299,14 @@ cyc_count_control = `CYC_COUNT_INCR;
                          `ADDR_BUS_SRC_PC,          \
                          `DATA_BUS_SRC_NONE,        \
                          `ALU_OP_NOP,               \
+                         `ALU_OP1_SRC_A,             \
                          `ALU_OP2_SRC_DATA_BUS,     \
                          `CYC_COUNT_SET1}
 
 
 // put *PC into ALU operand2. Other things, like what the alu does with aluop2 or where the alu
 // result goes, may still need to be specified outside of this macro
-`define UOP_PCPTR_INTO_ALUOP2 {`RW_READ,            \
+`define UOP_PCPTR_INTO_ALUOP2 {`RW_CONTROL_READ,            \
                                `PC_SRC_PC_PLUS1,    \
                                `INSTR_REG_SRC_INSTR_REG, \
                                `IDL_LOW_SRC_IDL_LOW,\
@@ -315,10 +317,11 @@ cyc_count_control = `CYC_COUNT_INCR;
                                `ADDR_BUS_SRC_PC,    \
                                `DATA_BUS_SRC_NONE,  \
                                `ALU_OP_NOP,         \
+                               `ALU_OP1_SRC_A,             \
                                `ALU_OP2_SRC_DATA_BUS,      \
                                `CYC_COUNT_RESET}
 
-`define UOP_ALUOP_ACCUM_DATABUS {`RW_READ,               \
+`define UOP_ALUOP_ACCUM_DATABUS {`RW_CONTROL_READ,               \
                                  `PC_SRC_PC_PLUS1,    \
                                  `INSTR_REG_SRC_INSTR_REG, \
                                  `IDL_LOW_SRC_IDL_LOW,\
@@ -329,10 +332,11 @@ cyc_count_control = `CYC_COUNT_INCR;
                                  `ADDR_BUS_SRC_PC,    \
                                  `DATA_BUS_SRC_NONE,  \
                                  `ALU_OP_NOP,         \
+                                 `ALU_OP1_SRC_A,             \
                                  `ALU_OP2_SRC_DATA_BUS,      \
                                  `CYC_COUNT_RESET}
 
-`define UOP_ALUOP_ADD_IDL {`RW_READ,                   \
+`define UOP_ALUOP_ADD_IDL {`RW_CONTROL_READ,                   \
                            `PC_SRC_PC,                 \
                            `INSTR_REG_SRC_INSTR_REG,   \
                            `IDL_LOW_SRC_ALU_OUT,       \
@@ -343,6 +347,7 @@ cyc_count_control = `CYC_COUNT_INCR;
                            `ADDR_BUS_SRC_PC,           \
                            `DATA_BUS_SRC_NONE,         \
                            `ALU_OP_IDLL_ADD,                \
+                           `ALU_OP1_SRC_A,             \
                            `ALU_OP2_SRC_DATA_BUS,      \
                            `CYC_COUNT_INCR}
 
@@ -392,6 +397,8 @@ module control_rom(input wire [7:0] instr,
         // the first part of the instruction is always instruction fetch
         if (cyc_count == 'b0) begin
            `CONTROL_ROM_BUNDLE = `UOP_IFETCH;
+           rw_control = `RW_CONTROL_READ;
+           $display("cyc count is 0. rw_control is %b", rw_control);
         end else begin
            // generally, we keep the instr reg src locked.
            // only in special cases with "pipelining" will we change the instr reg on a cycle that's
@@ -450,7 +457,7 @@ module control_rom(input wire [7:0] instr,
              // The only ones that are a little "odd" are LDA and STA, but we won't worry about
              // those for now.
              2'b01: begin
-                case(bbb)
+                casez(bbb)
                   // addr mode: x indexed, indirect
                   3'b000: begin
                      case (cyc_count)
@@ -476,10 +483,10 @@ module control_rom(input wire [7:0] instr,
 
                           // unless we are doing an STA, in which case we write the data to the bus
                           if (aaa != 'h4) begin
-                             rw = `RW_READ;
+                             rw_control = `RW_CONTROL_READ;
                              accum_src = `ACCUM_SRC_ALU;
                           end else begin
-                             rw = `RW_WRITE;
+                             rw_control = `RW_CONTROL_WRITE;
                              accum_src = `ACCUM_SRC_ACCUM;
                              data_bus_src = `DATA_BUS_SRC_ACCUM;
                           end
@@ -524,10 +531,10 @@ module control_rom(input wire [7:0] instr,
 
                           // unless we are doing an STA, in which case we write the data to the bus
                           if (aaa != 'h4) begin
-                             rw = `RW_READ;
+                             rw_control = `RW_CONTROL_READ;
                              accum_src = `ACCUM_SRC_ALU;
                           end else begin
-                             rw = `RW_WRITE;
+                             rw_control = `RW_CONTROL_WRITE;
                              accum_src = `ACCUM_SRC_ACCUM;
                              data_bus_src = `DATA_BUS_SRC_ACCUM;
                           end
@@ -560,7 +567,7 @@ module control_rom(input wire [7:0] instr,
                           alu_op = {1'b0, aaa};
 
                           if (aaa == 'h4) begin
-                             rw = `RW_WRITE;
+                             rw_control = `RW_CONTROL_WRITE;
                              accum_src = `ACCUM_SRC_ACCUM;
                              data_bus_src = `DATA_BUS_SRC_ACCUM;
                           end
@@ -578,16 +585,20 @@ module control_rom(input wire [7:0] instr,
                        'b010: begin
                           `CONTROL_ROM_BUNDLE = `UOP_LOAD_IDL_HI_FROM_PCPTR;
                           idl_low_src = `IDL_LOW_SRC_ALU_OUT;
+                          alu_op      = `ALU_OP_IDLL_ADD;
                           alu_op2_src = (bbb[0]) ? (`ALU_OP2_SRC_X) : (`ALU_OP2_SRC_Y);
                        end
 
                        'b011: begin
                           `CONTROL_ROM_BUNDLE = `UOP_ALUOP_ACCUM_DATABUS;
-
-                          alu_op2 = `ALU_OP2_SRC_DATA;
+                          pc_src = `PC_SRC_PC;
+                          idl_hi_src = `IDL_HI_SRC_IDL_HI_CARRY;
+                          addr_bus_src = `ADDR_BUS_SRC_IDL;
+                          alu_op2_src = `ALU_OP2_SRC_DATA_BUS;
+                          cyc_count_control = `CYC_COUNT_RESET_IF_IDX_SAMEPAGE;
                           alu_op = {1'b0, aaa};
                           if (aaa == 'h4) begin
-                             rw = `RW_CONTROL_WRITE_WHEN_PAGE_READY;
+                             rw_control = `RW_CONTROL_WRITE_WHEN_PAGE_READY;
                              accum_src = `ACCUM_SRC_ACCUM;
                              data_bus_src = `DATA_BUS_SRC_ACCUM;
                           end
@@ -601,16 +612,16 @@ module control_rom(input wire [7:0] instr,
                        // IDLH <= carry + IDLH
                        'b100: begin
                           `CONTROL_ROM_BUNDLE = `UOP_ALUOP_ACCUM_DATABUS;
-
+                          pc_src = `PC_SRC_PC;
+                          addr_bus_src = `ADDR_BUS_SRC_IDL;
+                          alu_op2_src = `ALU_OP2_SRC_DATA_BUS;
+                          cyc_count_control = `CYC_COUNT_RESET;
                           alu_op = {1'b0, aaa};
                           if (aaa == 'h4) begin
-                             rw = `RW_WRITE;
+                             rw_control = `RW_CONTROL_WRITE;
                              accum_src = `ACCUM_SRC_ACCUM;
                              data_bus_src = `DATA_BUS_SRC_ACCUM;
                           end
-                       end
-
-                       'b101: begin
                        end
                      endcase // case (cyc_count)
                   end
@@ -658,15 +669,15 @@ endmodule
  *
  */
 module cpu_2a03(input clock,
-                input  nreset,
+                input             nreset,
                 output reg [15:0] addr,
-                inout [7:0] data,
-                output rw,
-                input  nnmi,
-                input  nirq,
-                output reg naddr4016r,
-                output reg naddr4017r,
-                output reg [2:0] addr4016w);
+                inout [7:0]       data,
+                output reg        rw,
+                input             nnmi,
+                input             nirq,
+                output reg        naddr4016r,
+                output reg        naddr4017r,
+                output reg [2:0]  addr4016w);
 
    // ======= user facing registers =======
    // program counter
@@ -745,8 +756,6 @@ module cpu_2a03(input clock,
           `ALU_OP2_SRC_IDL_LOW:  alu_op2 = IDL[7:0];
           `ALU_OP2_SRC_X:        alu_op2 = X;
           `ALU_OP2_SRC_Y:        alu_op2 = Y;
-          `ALU_OP2_SRC_DATA_IF_READY_ELSE_Y: alu_op2 = pch_carry ? Y : A;
-          `ALU_OP2_SRC_DATA_IF_READY_ELSE_X: alu_op2 = pch_carry ? X : A;
         endcase
 
         alu_flags_overwrite = 'h0;
@@ -795,7 +804,6 @@ module cpu_2a03(input clock,
           `ALU_OP_PCL: {pch_carryw, alu_out} = PC[7:0] + IDL[7:0];
           `ALU_OP_PCH: alu_out = PC[15:8] + (pch_carry + {8{IDL[7]}});
           `ALU_OP_IDLL_ADD: {pch_carryw, alu_out} = IDL[7:0] + alu_op2;
-          `ALU_OP_IDLH_ADD: alu_out = IDL[15:8] + pch_carry;
           default: alu_out = 8'ha5;
         endcase
      end
@@ -895,7 +903,7 @@ module cpu_2a03(input clock,
           case(idl_hi_src)
             `IDL_HI_SRC_IDL_HI:   IDL[15:8] <= IDL[15:8];
             `IDL_HI_SRC_DATA_BUS: IDL[15:8] <= data[7:0];
-            `IDL_HI_SRC_ALU_OUT: IDL[15:8] <= alu_out;
+            `IDL_HI_SRC_IDL_HI_CARRY: IDL[15:8] <= IDL[15:8] + pch_carry;
           endcase
 
           // update program counter
@@ -926,7 +934,7 @@ module cpu_2a03(input clock,
             `CYC_COUNT_RESET:  cyc_count <= 'b000;
             `CYC_COUNT_SET1:   cyc_count <= 'b001;
             `CYC_COUNT_SET1_IF_NOBRANCH: cyc_count <= do_branch ? (cyc_count + 1) : 'b1;
-            `CYC_COUNT_RESET_IF_IDX_SAMEPAGE: cyc_count <= pch_carry ? cyc_count + 1 : 'b1;
+            `CYC_COUNT_RESET_IF_IDX_SAMEPAGE: cyc_count <= pch_carry ? cyc_count + 1 : 'b0;
             `CYC_COUNT_SET1_IF_PC_SAMEPAGE: cyc_count <= page_boundary_crossed ? cyc_count + 1 : 'b1;
           endcase
 

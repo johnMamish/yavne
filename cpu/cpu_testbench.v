@@ -91,6 +91,8 @@ module cpu_testbench();
         // let MCU run for a bit?
         nreset = 1'b1; #250000;
 
+        // write to memory file
+        $writememh("cpu_mem_state.hex", memory.memory);
         $finish;
 
      end
