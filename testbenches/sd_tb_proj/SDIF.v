@@ -157,7 +157,7 @@ module SDIF(input wire clock,
                 
                 
                 state_reset0: begin
-                    if (cv == 10) begin
+                    if (cv == 100) begin
                         next_state = state_compute_crc;
                         next_ib_v = 0;
                         next_ss = 1;
