@@ -35,6 +35,7 @@ module SDIF(input wire clock,
         reg next_ss;
         reg ib_v,next_ib_v;
         wire byte_ready;
+        wire spi_iface_idle;
         reg spir; 
         assign valid_read = (state == state_read3);
         assign sd_byte = valid_read ? rb : 0;
@@ -55,6 +56,7 @@ module SDIF(input wire clock,
                       .reset(spir), 
                       .ib_v(ib_v),
                       .ib_in(ib_in),
+                      .idle(spi_iface_idle),
                       .rb_o(rbw),
                       .byte_ready(byte_ready),
                       .sclk(sclk),
@@ -158,7 +160,7 @@ module SDIF(input wire clock,
                 
                 
                 state_reset0: begin
-                    if (cv == 10) begin
+                    if (cv == 100) begin
                         next_state = state_compute_crc;
                         next_ib_v = 0;
                         next_ss = 1;
@@ -182,7 +184,7 @@ module SDIF(input wire clock,
                     if ( cv > 6 && rb != 8'hff) begin
                         next_ss = 1;
                         ncv = 7;
-                        spir = 1;
+                        next_ib_v = 0;
                         next_state = state_compute_crc;
                         next_pts = state_reset4;
                         next_addr = 32'h000001aa;
@@ -195,12 +197,10 @@ module SDIF(input wire clock,
                 end
 
                 state_wait: begin 
-                    next_ss = (crc_counter == 0) ? 0 : 1;
-                    ncv = 0;
-                    spir = 1;
-						  next_ib_v = (crc_counter == 0) ? 1 : 0;
-						  
-						  
+                    next_ss = (crc_counter == 0 || ~spi_iface_idle) ? 0 : 1;
+                    ncv = 0; 
+					next_ib_v = (crc_counter == 0) ? 1 : 0;
+                    spir = (crc_counter == 0) ? 1 : 0;
                     next_state = (crc_counter == 0) ? pts : state_wait;
                 end
 
@@ -208,8 +208,7 @@ module SDIF(input wire clock,
                     if ( cv > 6 && cv < 16 && rb == 8'd1) begin
 					    next_state = state_wait; 
                         next_pts = state_reset6;
-                        next_addr = 0;
-								spir = 1;
+                        next_addr = 0;	
                     end else if (cv >= 16) begin
                         next_state = state_wait;
 					    next_pts = state_reset4;
@@ -247,7 +246,7 @@ module SDIF(input wire clock,
 
 
                 state_idle: begin
-                    spir = 1;
+                    
                     ncv = 0;
                     next_ss = 1;
                     next_ib_v = 0;
@@ -263,8 +262,7 @@ module SDIF(input wire clock,
                 state_read0: begin
                     if ( cv > 6 && cv < 16 && rb == 0) begin
                         next_state = state_read1;
-                        ncv = 10;
-                        spir = 1;
+                        ncv = 10; 
                     end else if ( cv >= 16) begin
                         next_state = state_fail;
                     end
@@ -275,7 +273,7 @@ module SDIF(input wire clock,
                         ncv = 10;
                     if ( rb == 8'hFE) begin
                         next_state = state_read2;
-                        spir = 1;
+                        
                         ncv = 10;
                     end
                 end
@@ -295,7 +293,7 @@ module SDIF(input wire clock,
                 state_read4: begin
                     if (cv == 12) begin
                         next_state= state_idle;
-                        spir = 1;
+                        
                         next_ss = 1;
                         next_ib_v = 0;
                     end

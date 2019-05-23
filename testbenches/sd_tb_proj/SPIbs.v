@@ -5,6 +5,7 @@ module SPIbs(input clock,
              // input byte value
              input wire [7:0] ib_in,
              output wire [7:0] rb_o,
+             output wire idle,
 
              output wire byte_ready,
              output wire sclk,
@@ -17,8 +18,8 @@ module SPIbs(input clock,
    
    
   
-    assign sclk = divclk & ib_v;
-    assign byte_ready = (sc == 4'd7) & divcnt[2] & ~(|divcnt[1:0]);
+    assign sclk = divclk; 
+    assign byte_ready = (sc == 4'd7) & divcnt[3] & ~(|divcnt[2:0]);
     reg [7:0] wb; 
     
     reg [6:0] divcnt;
@@ -27,8 +28,8 @@ module SPIbs(input clock,
 	reg tr;
     wire divclk;
 
-    assign divclk = divcnt[2];
-   
+    assign divclk = divcnt[3];
+    assign idle =  (sc > 4'd7) & ~ib_v;
     assign mosi = wb[7];
     assign rb_o = {rb[6:0], tr};
 
@@ -37,7 +38,7 @@ module SPIbs(input clock,
         if (reset) begin
             divcnt <= 0;
         end else begin
-            divcnt <= divcnt +1'b1;
+            divcnt <= idle ? 0 :  divcnt +1'b1;
         end 
     end
 
