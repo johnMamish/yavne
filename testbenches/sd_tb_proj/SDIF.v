@@ -29,7 +29,7 @@ module SDIF(input wire clock,
         reg [7:0] rb;
         wire [46:0] serialized_packet;
         assign serialized_packet = {com, addr, 7'd0};
-        assign crc = {crc_reg, 1'b1};
+        assign crc = com != 8'h41 ? {crc_reg, 1'b1} : 8'hf9;
           
         reg next_ss;
         reg ib_v,next_ib_v;
@@ -178,7 +178,7 @@ module SDIF(input wire clock,
                 end
                 
                 state_reset2: begin
-                    if ( cv > 6 && rb == 8'd1) begin
+                    if ( cv > 6 && rb != 8'hff) begin
                         next_ss = 1;
                         ncv = 7;
                         spir = 1;
