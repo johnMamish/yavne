@@ -83,23 +83,26 @@
 
 /////////////////// ALU opcodes
 // these decide what gets put on the output of the ALU
-`define ALU_OP_OR  4'h0
-`define ALU_OP_AND 4'h1
-`define ALU_OP_EOR 4'h2
-`define ALU_OP_ADC 4'h3
-`define ALU_OP_STA 4'h4         // sta operation: alu output don't care
-`define ALU_OP_FWD_OP2 4'h5     // alu_output <= alu_op2
-`define ALU_OP_CMP 4'h6
-`define ALU_OP_SBC 4'h7
+`define ALU_OP_OR  5'h0
+`define ALU_OP_AND 5'h1
+`define ALU_OP_EOR 5'h2
+`define ALU_OP_ADC 5'h3
+`define ALU_OP_STA 5'h4         // sta operation: alu output don't care
+`define ALU_OP_FWD_OP2 5'h5     // alu_output <= alu_op2
+`define ALU_OP_CMP 5'h6
+`define ALU_OP_SBC 5'h7
 
-`define ALU_OP_NOP 4'h8
+`define ALU_OP_NOP 5'h8
 
-`define ALU_OP_PCL 4'h9         // PCL <= PCL + IDL
-`define ALU_OP_PCH 4'ha         // PCH <= PCH + carry + idl[7] sign extend
+`define ALU_OP_PCL 5'h9         // PCL <= PCL + IDL
+`define ALU_OP_PCH 5'ha         // PCH <= PCH + carry + idl[7] sign extend
 
-`define ALU_OP_IDLL_ADD 4'hb     // IDLL <= IDLL + op2
-`define ALU_OP_IDLH_CARRY 4'hc   // IDLH <= IDLH + carry
+`define ALU_OP_IDLL_ADD 5'hb     // IDLL <= IDLL + op2
+`define ALU_OP_IDLH_CARRY 5'hc   // IDLH <= IDLH + carry
 
+`define ALU_OP_CLC 5'h10
+`define ALU_OP_SEC 5'h11
+`define ALU_OP_CLV 5'h12
 
 /////////////////// ALU operand1 source
 `define ALU_OP1_SRC_A         2'h0
@@ -165,6 +168,21 @@ cyc_count_control = `CYC_COUNT_INCR;
                              cyc_count_control}
 
 `define IDL_CONTROL_BUNDLE {idl_low_src, idl_hi_src}
+
+`define UOP_NOP {`RW_CONTROL_READ,                   \
+                 `PC_SRC_PC,           \
+                 `INSTR_REG_SRC_DATA_BUS,    \
+                 `IDL_LOW_SRC_IDL_LOW,       \
+                 `IDL_HI_SRC_IDL_HI,         \
+                 `ACCUM_SRC_ACCUM,           \
+                 `X_SRC_X,                   \
+                 `Y_SRC_Y,                   \
+                 `ADDR_BUS_SRC_PC,           \
+                 `DATA_BUS_SRC_NONE,         \
+                 `ALU_OP_NOP,                \
+                 `ALU_OP1_SRC_A,             \
+                 `ALU_OP2_SRC_DATA_BUS,      \
+                 `CYC_COUNT_INCR}
 
 `define UOP_IFETCH {`RW_CONTROL_READ,                   \
                     `PC_SRC_PC_PLUS1,           \
@@ -377,7 +395,7 @@ module control_rom(input wire [7:0] instr,
                    output reg [1:0] y_src,
                    output reg [2:0] addr_bus_src,
                    output reg [1:0] data_bus_src,
-                   output reg [3:0] alu_op,
+                   output reg [4:0] alu_op,
                    output reg [1:0] alu_op1_src,
                    output reg [2:0] alu_op2_src,
                    output reg [2:0] cyc_count_control);
@@ -639,6 +657,33 @@ module control_rom(input wire [7:0] instr,
                        accum_src = `ACCUM_SRC_X;
                      end
                   end
+
+                  // NOP
+                  {3'h7, 3'h2}: begin
+                     `CONTROL_ROM_BUNDLE = `UOP_NOP;
+                     cyc_count_control = `CYC_COUNT_RESET;
+                  end
+
+                  // CLC
+                  {3'h0, 3'h6}: begin
+                     `CONTROL_ROM_BUNDLE = `UOP_NOP;
+                     cyc_count_control = `CYC_COUNT_RESET;
+                     alu_op = `ALU_OP_CLC;
+                  end
+
+                  // SEC
+                  {3'h1, 3'h6}: begin
+                     `CONTROL_ROM_BUNDLE = `UOP_NOP;
+                     cyc_count_control = `CYC_COUNT_RESET;
+                     alu_op = `ALU_OP_SEC;
+                  end
+
+                  // CLV
+                  {3'h0, 3'h6}: begin
+                     `CONTROL_ROM_BUNDLE = `UOP_NOP;
+                     cyc_count_control = `CYC_COUNT_RESET;
+                     alu_op = `ALU_OP_CLV;
+                  end
                 endcase // case ({aaa, bbb})
              end
 
@@ -718,7 +763,7 @@ module cpu_2a03(input clock,
    wire [1:0] y_src;
    wire [2:0] addr_bus_src;
    wire [1:0] data_bus_src;
-   wire [3:0] alu_op;
+   wire [4:0] alu_op;
    wire [2:0] alu_op2_src;
    wire [2:0] cyc_count_control;
    control_rom cr(.instr(instr),
@@ -749,6 +794,8 @@ module cpu_2a03(input clock,
    reg [7:0] alu_op2;
    reg [7:0] alu_flags_out;
    reg [7:0] alu_flags_overwrite;
+   wire [7:0] op2_neg = ~alu_op2;
+   reg       c6;
    always @ *
      begin
         case(alu_op2_src)
@@ -758,8 +805,11 @@ module cpu_2a03(input clock,
           `ALU_OP2_SRC_Y:        alu_op2 = Y;
         endcase
 
+        c6 = 'h0;
         alu_flags_overwrite = 'h0;
         alu_flags_out = 'h0;
+        alu_flags_out[1] = (alu_out == 8'h00);
+        alu_flags_out[7] = alu_out[7];
 
         case(alu_op)
           `ALU_OP_OR:  begin
@@ -781,19 +831,37 @@ module cpu_2a03(input clock,
           end
 
           `ALU_OP_ADC: begin
-             //{alu_flags_out[?], alu_out} = A + alu_op2;
-             alu_out = A + alu_op2;
-             alu_flags_overwrite = 8'b1000_0010;
-             alu_flags_out[7] = alu_out[7];
-             alu_flags_out[5:0] = {4'h0, (alu_out == 8'h00), 1'h0};
+             {c6, alu_out[6:0]} = A[6:0] + alu_op2[6:0] + flags[0];
+             {alu_flags_out[0], alu_out[7]} = A[7] + alu_op2[7] + c6;
+             alu_flags_out[6] = c6 ^ alu_flags_out[0];
+             alu_flags_overwrite = 8'b1100_0011;
           end
 
           `ALU_OP_STA: begin
              alu_out = 8'h0;
           end
 
+          // LDA
           `ALU_OP_FWD_OP2: begin
              alu_out = alu_op2;
+             alu_flags_out[7] = alu_out[7]; // n
+             alu_flags_out[1] = (alu_out == 'h0);
+             alu_flags_overwrite = 8'b1000_0010;
+          end
+
+          `ALU_OP_CMP: begin
+             {c6, alu_out[6:0]} = A[6:0] + op2_neg[6:0] + flags[0];
+             {alu_flags_out[0], alu_out[7]} = A[7] + op2_neg[7] + c6;
+             alu_flags_out[6] = c6 ^ alu_flags_out[0];
+             alu_flags_overwrite = 8'b1100_0011;
+             alu_out = A;    // cheap trick to avoid adding extra cases to control rom
+          end
+
+          `ALU_OP_SBC: begin
+             {c6, alu_out[6:0]} = A[6:0] + op2_neg[6:0] + flags[0];
+             {alu_flags_out[0], alu_out[7]} = A[7] + op2_neg[7] + c6;
+             alu_flags_out[6] = c6 ^ alu_flags_out[0];
+             alu_flags_overwrite = 8'b1100_0011;
           end
 
           `ALU_OP_NOP: begin
@@ -804,6 +872,16 @@ module cpu_2a03(input clock,
           `ALU_OP_PCL: {pch_carryw, alu_out} = PC[7:0] + IDL[7:0];
           `ALU_OP_PCH: alu_out = PC[15:8] + (pch_carry + {8{IDL[7]}});
           `ALU_OP_IDLL_ADD: {pch_carryw, alu_out} = IDL[7:0] + alu_op2;
+
+          `ALU_OP_CLC, `ALU_OP_SEC: begin
+             alu_flags_out[0] = (alu_op == `ALU_OP_SEC) ? 1'b1 : 1'b0;
+             alu_flags_overwrite = 8'b0000_0001;
+          end
+
+          `ALU_OP_CLV: begin
+             alu_flags_out[6] = 1'b1;
+             alu_flags_overwrite = 8'b0100_0000;
+          end
           default: alu_out = 8'ha5;
         endcase
      end
