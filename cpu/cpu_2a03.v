@@ -1,3 +1,10 @@
+/**
+ * This code copyright James Connolly and John Mamish, 2019
+ *
+ *
+ */
+
+
 `timescale 1ns/100ps
 
 `define DEFINED
@@ -43,10 +50,12 @@
 
 
 /////////////////// data bus
-`define DATA_BUS_SRC_NONE 2'h0
-`define DATA_BUS_SRC_ACCUM 2'h1
-`define DATA_BUS_SRC_X 2'h2
-`define DATA_BUS_SRC_Y 2'h3
+`define DATA_BUS_SRC_NONE 3'h0
+`define DATA_BUS_SRC_ACCUM 3'h1
+`define DATA_BUS_SRC_X 3'h2
+`define DATA_BUS_SRC_Y 3'h3
+`define DATA_BUS_SRC_FLAGS 3'h4
+
 
 /////////////////// instruction register
 `define INSTR_REG_SRC_INSTR_REG             3'h0
@@ -64,15 +73,27 @@
 `define ACCUM_SRC_Y   2'h3
 
 
+/////////////////// SP
+`define SP_SRC_SP      2'h0
+`define SP_SRC_ALU_OUT 2'h1
+
+
 /////////////////// X register
 `define X_SRC_X  2'h0
 `define X_SRC_ACCUM 2'h1
 `define X_SRC_ALU_OUT 2'h2
 
+
 /////////////////// Y register
 `define Y_SRC_Y  2'h0
 `define Y_SRC_ACCUM 2'h1
 `define Y_SRC_ALU_OUT 2'h2
+
+
+/////////////////// flags register
+`define FLAGS_SRC_NEXT 2'h0
+`define FLAGS_SRC_DATA_BUS 2'h1
+
 
 /////////////////// internal data latch
 `define IDL_LOW_SRC_IDL_LOW  2'b0
@@ -103,6 +124,7 @@
 `define ALU_OP_IDLH_CARRY 5'hc   // IDLH <= IDLH + carry
 
 `define ALU_OP_INC 5'hd     // add op1 and op2 without carry.
+`define ALU_OP_INC_NOFLAGS 5'he  // add op1 and op2 without carry and without modifying flags.
 
 `define ALU_OP_CLC 5'h10
 `define ALU_OP_SEC 5'h11
@@ -113,6 +135,7 @@
 `define ALU_OP1_SRC_DATA      3'h1
 `define ALU_OP1_SRC_X      3'h2
 `define ALU_OP1_SRC_Y      3'h3
+`define ALU_OP1_SRC_SP     3'h4
 
 /////////////////// ALU operand2 source
 `define ALU_OP2_SRC_DATA_BUS  3'h0
@@ -166,8 +189,10 @@ cyc_count_control = `CYC_COUNT_INCR;
                              idl_low_src,   \
                              idl_hi_src,    \
                              accum_src,     \
+                             sp_src,        \
                              x_src,         \
                              y_src,         \
+                             flags_src,     \
                              addr_bus_src,  \
                              data_bus_src,  \
                              alu_op,        \
@@ -179,12 +204,14 @@ cyc_count_control = `CYC_COUNT_INCR;
 
 `define UOP_NOP {`RW_CONTROL_READ,                   \
                  `PC_SRC_PC,           \
-                 `INSTR_REG_SRC_DATA_BUS,    \
+                 `INSTR_REG_SRC_INSTR_REG,    \
                  `IDL_LOW_SRC_IDL_LOW,       \
                  `IDL_HI_SRC_IDL_HI,         \
                  `ACCUM_SRC_ACCUM,           \
+                 `SP_SRC_SP,                 \
                  `X_SRC_X,                   \
                  `Y_SRC_Y,                   \
+                 `FLAGS_SRC_NEXT,            \
                  `ADDR_BUS_SRC_PC,           \
                  `DATA_BUS_SRC_NONE,         \
                  `ALU_OP_NOP,                \
@@ -198,8 +225,10 @@ cyc_count_control = `CYC_COUNT_INCR;
                     `IDL_LOW_SRC_IDL_LOW,       \
                     `IDL_HI_SRC_IDL_HI,         \
                     `ACCUM_SRC_ACCUM,           \
+                    `SP_SRC_SP,                 \
                     `X_SRC_X,                   \
                     `Y_SRC_Y,                   \
+                    `FLAGS_SRC_NEXT,            \
                     `ADDR_BUS_SRC_PC,           \
                     `DATA_BUS_SRC_NONE,         \
                     `ALU_OP_NOP,                \
@@ -213,8 +242,10 @@ cyc_count_control = `CYC_COUNT_INCR;
                       `IDL_LOW_SRC_IDL_LOW,       \
                       `IDL_HI_SRC_IDL_HI,         \
                       `ACCUM_SRC_ACCUM,           \
+                      `SP_SRC_SP,                 \
                       `X_SRC_X,                   \
                       `Y_SRC_Y,                   \
+                      `FLAGS_SRC_NEXT,            \
                       `ADDR_BUS_SRC_PC,           \
                       `DATA_BUS_SRC_NONE,         \
                       `ALU_OP_NOP,                \
@@ -228,8 +259,10 @@ cyc_count_control = `CYC_COUNT_INCR;
                                        `IDL_LOW_SRC_DATA_BUS,       \
                                        `IDL_HI_SRC_IDL_HI,          \
                                        `ACCUM_SRC_ACCUM,            \
+                                       `SP_SRC_SP,                 \
                                        `X_SRC_X,                   \
                                        `Y_SRC_Y,                   \
+                                       `FLAGS_SRC_NEXT,            \
                                        `ADDR_BUS_SRC_PC,            \
                                        `DATA_BUS_SRC_NONE,          \
                                        `ALU_OP_NOP,                 \
@@ -243,8 +276,10 @@ cyc_count_control = `CYC_COUNT_INCR;
                                         `IDL_LOW_SRC_IDL_LOW,       \
                                         `IDL_HI_SRC_DATA_BUS,       \
                                         `ACCUM_SRC_ACCUM,           \
+                                       `SP_SRC_SP,                 \
                                        `X_SRC_X,                   \
                                        `Y_SRC_Y,                   \
+                                       `FLAGS_SRC_NEXT,            \
                                         `ADDR_BUS_SRC_PC,           \
                                         `DATA_BUS_SRC_NONE,         \
                                         `ALU_OP_NOP,                \
@@ -259,8 +294,10 @@ cyc_count_control = `CYC_COUNT_INCR;
                                            `IDL_LOW_SRC_IDL_LOW,       \
                                            `IDL_HI_SRC_IDL_HI,         \
                                            `ACCUM_SRC_ACCUM,           \
+                                           `SP_SRC_SP,                 \
                                            `X_SRC_X,                   \
                                            `Y_SRC_Y,                   \
+                                           `FLAGS_SRC_NEXT,            \
                                            `ADDR_BUS_SRC_PC,           \
                                            `DATA_BUS_SRC_NONE,         \
                                            `ALU_OP_NOP,                \
@@ -274,8 +311,10 @@ cyc_count_control = `CYC_COUNT_INCR;
                                `IDL_LOW_SRC_IDL_LOW,      \
                                `IDL_HI_SRC_IDL_HI,        \
                                `ACCUM_SRC_ACCUM,          \
+                               `SP_SRC_SP,                 \
                                `X_SRC_X,                   \
                                `Y_SRC_Y,                   \
+                               `FLAGS_SRC_NEXT,            \
                                `ADDR_BUS_SRC_IDL,         \
                                `DATA_BUS_SRC_NONE,        \
                                `ALU_OP_NOP,               \
@@ -289,8 +328,10 @@ cyc_count_control = `CYC_COUNT_INCR;
                          `IDL_LOW_SRC_IDL_LOW,      \
                          `IDL_HI_SRC_IDL_HI,        \
                          `ACCUM_SRC_ACCUM,          \
+                         `SP_SRC_SP,                 \
                          `X_SRC_X,                   \
                          `Y_SRC_Y,                   \
+                         `FLAGS_SRC_NEXT,            \
                          `ADDR_BUS_SRC_PC,          \
                          `DATA_BUS_SRC_NONE,        \
                          `ALU_OP_PCL,               \
@@ -304,8 +345,10 @@ cyc_count_control = `CYC_COUNT_INCR;
                          `IDL_LOW_SRC_IDL_LOW,      \
                          `IDL_HI_SRC_IDL_HI,        \
                          `ACCUM_SRC_ACCUM,          \
+                         `SP_SRC_SP,                 \
                          `X_SRC_X,                   \
                          `Y_SRC_Y,                   \
+                         `FLAGS_SRC_NEXT,            \
                          `ADDR_BUS_SRC_PC,          \
                          `DATA_BUS_SRC_NONE,        \
                          `ALU_OP_PCH,               \
@@ -320,8 +363,10 @@ cyc_count_control = `CYC_COUNT_INCR;
                          `IDL_LOW_SRC_IDL_LOW,      \
                          `IDL_HI_SRC_IDL_HI,        \
                          `ACCUM_SRC_ACCUM,          \
+                         `SP_SRC_SP,                 \
                          `X_SRC_X,                   \
                          `Y_SRC_Y,                   \
+                         `FLAGS_SRC_NEXT,            \
                          `ADDR_BUS_SRC_PC,          \
                          `DATA_BUS_SRC_NONE,        \
                          `ALU_OP_NOP,               \
@@ -338,8 +383,10 @@ cyc_count_control = `CYC_COUNT_INCR;
                                `IDL_LOW_SRC_IDL_LOW,\
                                `IDL_HI_SRC_IDL_HI,  \
                                `ACCUM_SRC_ALU,      \
+                               `SP_SRC_SP,                 \
                                `X_SRC_X,                   \
                                `Y_SRC_Y,                   \
+                               `FLAGS_SRC_NEXT,            \
                                `ADDR_BUS_SRC_PC,    \
                                `DATA_BUS_SRC_NONE,  \
                                `ALU_OP_NOP,         \
@@ -353,8 +400,10 @@ cyc_count_control = `CYC_COUNT_INCR;
                                  `IDL_LOW_SRC_IDL_LOW,\
                                  `IDL_HI_SRC_IDL_HI,  \
                                  `ACCUM_SRC_ALU,      \
+                                 `SP_SRC_SP,                 \
                                  `X_SRC_X,                   \
                                  `Y_SRC_Y,                   \
+                                 `FLAGS_SRC_NEXT,            \
                                  `ADDR_BUS_SRC_PC,    \
                                  `DATA_BUS_SRC_NONE,  \
                                  `ALU_OP_NOP,         \
@@ -368,8 +417,10 @@ cyc_count_control = `CYC_COUNT_INCR;
                            `IDL_LOW_SRC_ALU_OUT,       \
                            `IDL_HI_SRC_IDL_HI,         \
                            `ACCUM_SRC_ACCUM,           \
+                           `SP_SRC_SP,                 \
                            `X_SRC_X,                   \
                            `Y_SRC_Y,                   \
+                           `FLAGS_SRC_NEXT,            \
                            `ADDR_BUS_SRC_PC,           \
                            `DATA_BUS_SRC_NONE,         \
                            `ALU_OP_IDLL_ADD,                \
@@ -399,10 +450,12 @@ module control_rom(input wire [7:0] instr,
                    output reg [1:0] idl_low_src,
                    output reg [1:0] idl_hi_src,
                    output reg [1:0] accum_src,
+                   output reg [1:0] sp_src,
                    output reg [1:0] x_src,
                    output reg [1:0] y_src,
+                   output reg [1:0] flags_src,
                    output reg [2:0] addr_bus_src,
-                   output reg [1:0] data_bus_src,
+                   output reg [2:0] data_bus_src,
                    output reg [4:0] alu_op,
                    output reg [2:0] alu_op1_src,
                    output reg [2:0] alu_op2_src,
@@ -435,6 +488,55 @@ module control_rom(input wire [7:0] instr,
            case(cc)
              2'b00: begin
                 casez({aaa, bbb})
+                  // PHP, PHA
+                  {3'b0?0, 3'h2}: begin
+                     case(cyc_count)
+                       'b001: begin
+                          `CONTROL_ROM_BUNDLE = `UOP_NOP;
+                          addr_bus_src = `ADDR_BUS_SRC_SP;
+                          rw_control = `RW_CONTROL_WRITE;
+                          data_bus_src = (aaa[1] == 'b1)?`DATA_BUS_SRC_ACCUM:`DATA_BUS_SRC_FLAGS;
+                       end
+                       'b010: begin
+                          `CONTROL_ROM_BUNDLE = `UOP_NOP;
+                          alu_op = `ALU_OP_INC_NOFLAGS;
+                          alu_op1_src = `ALU_OP1_SRC_SP;
+                          alu_op2_src = `ALU_OP2_SRC_NEG1;
+                          sp_src = `SP_SRC_ALU_OUT;
+                          cyc_count_control = `CYC_COUNT_RESET;
+                       end
+                     endcase
+                  end // case: {3'b0??, 3'h2}
+
+                  // PLP, PLA
+                  {3'b0?1, 3'h2}: begin
+                     case(cyc_count)
+                       // https://github.com/eteran/pretendo/blob/master/doc/cpu/6502.txt
+                       // says that on cycle 1, PLP and PLA practically do nothing.
+                       'b001: `CONTROL_ROM_BUNDLE = `UOP_NOP;
+                       'b010: begin
+                          `CONTROL_ROM_BUNDLE = `UOP_NOP;
+                          alu_op = `ALU_OP_INC_NOFLAGS;
+                          alu_op1_src = `ALU_OP1_SRC_SP;
+                          alu_op2_src = `ALU_OP2_SRC_1;
+                          sp_src = `SP_SRC_ALU_OUT;
+                          cyc_count_control = `CYC_COUNT_INCR;
+                       end
+                       'b011: begin
+                          `CONTROL_ROM_BUNDLE = `UOP_NOP;
+                          addr_bus_src = `ADDR_BUS_SRC_SP;
+                          cyc_count_control = `CYC_COUNT_RESET;
+                          if (aaa[1] == 1'b0) begin
+                             flags_src = `FLAGS_SRC_DATA_BUS;
+                          end else begin
+                             alu_op = `ALU_OP_FWD_OP2;
+                             alu_op2_src = `ALU_OP2_SRC_DATA_BUS;
+                             accum_src = `ACCUM_SRC_ALU;
+                          end
+                       end
+                     endcase // case (cyc_count)
+                  end
+
                   // JMP abs
                    {3'h2, 3'h3}: begin
                       case(cyc_count)
@@ -958,10 +1060,12 @@ module cpu_2a03(input clock,
    wire [1:0] idl_low_src;
    wire [1:0] idl_hi_src;
    wire [1:0] accum_src;
+   wire [1:0] sp_src;
    wire [1:0] x_src;
    wire [1:0] y_src;
+   wire [1:0] flags_src;
    wire [2:0] addr_bus_src;
-   wire [1:0] data_bus_src;
+   wire [2:0] data_bus_src;
    wire [4:0] alu_op;
    wire [2:0] alu_op1_src;
    wire [2:0] alu_op2_src;
@@ -974,8 +1078,10 @@ module cpu_2a03(input clock,
                   .idl_low_src(idl_low_src),
                   .idl_hi_src(idl_hi_src),
                   .accum_src(accum_src),
+                  .sp_src(sp_src),
                   .x_src(x_src),
                   .y_src(y_src),
+                  .flags_src(flags_src),
                   .addr_bus_src(addr_bus_src),
                   .data_bus_src(data_bus_src),
                   .alu_op(alu_op),
@@ -1001,9 +1107,11 @@ module cpu_2a03(input clock,
    always @ *
      begin
         case(alu_op1_src)
-          `ALU_OP1_SRC_A: alu_op1 = A;
-          `ALU_OP1_SRC_X: alu_op1 = X;
-          `ALU_OP1_SRC_Y: alu_op1 = Y;
+          `ALU_OP1_SRC_A:     alu_op1 = A;
+          `ALU_OP1_SRC_DATA:  alu_op1 = data;
+          `ALU_OP1_SRC_X:     alu_op1 = X;
+          `ALU_OP1_SRC_Y:     alu_op1 = Y;
+          `ALU_OP1_SRC_SP:    alu_op1 = SP;
         endcase
 
         case(alu_op2_src)
@@ -1099,6 +1207,11 @@ module cpu_2a03(input clock,
              alu_flags_out[1] = (alu_out == 8'h00);
              alu_flags_overwrite = 8'b1000_0010;
           end
+
+          `ALU_OP_INC_NOFLAGS: begin
+             alu_out = alu_op1 + alu_op2;
+             alu_flags_overwrite = 8'b0000_0000;
+          end
           default: alu_out = 8'ha5;
         endcase
      end
@@ -1110,7 +1223,7 @@ module cpu_2a03(input clock,
           `ADDR_BUS_SRC_PC: addr = PC;
           `ADDR_BUS_SRC_IDL_LOW: addr = {8'b0, IDL[7:0]};
           `ADDR_BUS_SRC_IDL: addr = IDL;
-          `ADDR_BUS_SRC_SP: addr = {7'b0, 1'b1, SP};
+          `ADDR_BUS_SRC_SP: addr = {8'h01, SP};
         endcase
      end
 
@@ -1123,6 +1236,7 @@ module cpu_2a03(input clock,
           `DATA_BUS_SRC_ACCUM: ODL = A;
           `DATA_BUS_SRC_X: ODL = X;
           `DATA_BUS_SRC_Y: ODL = Y;
+          `DATA_BUS_SRC_FLAGS: ODL = flags;
         endcase
      end
 
@@ -1170,6 +1284,11 @@ module cpu_2a03(input clock,
             `ACCUM_SRC_ALU:     A <= alu_out;
             `ACCUM_SRC_X:       A <= X;
             `ACCUM_SRC_Y:       A <= Y;
+          endcase
+
+          case(sp_src)
+            `SP_SRC_SP:        SP <= SP;
+            `SP_SRC_ALU_OUT:    SP <= alu_out;
           endcase
 
           case(x_src)
@@ -1239,15 +1358,20 @@ module cpu_2a03(input clock,
           pch_carry <= pch_carryw;
 
           // flags register
-          for (i = 0; i < 8; i = i + 1) begin
-             flags[i] <= alu_flags_overwrite[i] ? alu_flags_out[i] : flags[i];
-          end
+          case(flags_src)
+            `FLAGS_SRC_NEXT: begin
+               for (i = 0; i < 8; i = i + 1) begin
+                  flags[i] <= alu_flags_overwrite[i] ? alu_flags_out[i] : flags[i];
+               end
+            end
+            `FLAGS_SRC_DATA_BUS: flags <= data;
+          endcase
        end
      else
        begin
           // reset all registers
           PC        <= 'b0;
-          SP        <= 'b0;
+          SP        <= 8'hff;
           A         <= 'b0;
           X         <= 'b0;
           Y         <= 'b0;
