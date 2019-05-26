@@ -73,7 +73,7 @@ SDIF    dut(.clock(clock),
              .sclk(SD_CLK),
              .mosi(SD_MOSI), 
             .state(LED_RED[4:0]),
-				.crc(next_state));
+				.dleds(next_state));
 
 				
 				assign LED_GREEN  = valid_read ? sd_byte : next_state;

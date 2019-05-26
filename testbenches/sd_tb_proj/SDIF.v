@@ -13,11 +13,11 @@ module SDIF(input wire clock,
             output wire sclk,
             output wire mosi, 
             output reg [4:0] state,
-            output wire[7:0] crc
+            output wire [7:0] dleds
 
 );
 
-
+		 
 
         reg [6:0] crc_reg, next_crc_reg;
         reg [4:0] next_pts, pts, next_state;
@@ -25,17 +25,21 @@ module SDIF(input wire clock,
         reg [7:0] com, next_com;
         reg [8:0] crc_counter;
         reg [31:0] addr, next_addr;
-        wire [7:0] rbw, ib_in;
+        wire [7:0] rbw, ib_in, crc;
         reg [7:0] rb;
+		  wire spi_iface_idle;
         wire [46:0] serialized_packet;
         assign serialized_packet = {com, addr, 7'd0};
+		  assign dleds[0] = spi_iface_idle;
+		  assign dleds[1] = spir;
+		  assign dleds[2] = ib_v;
         assign crc =  com == (8'h40  | com_reset) ? 8'h95 :
                       com == (8'h40  | com_vc)    ? 8'h87  :
 							 com == (8'h40  | com_init)  ? 8'hfe  : 8'h65;
         reg next_ss;
         reg ib_v,next_ib_v;
         wire byte_ready;
-        wire spi_iface_idle;
+        
         reg spir; 
         assign valid_read = (state == state_read3);
         assign sd_byte = valid_read ? rb : 0;
