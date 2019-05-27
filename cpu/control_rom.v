@@ -51,6 +51,7 @@ module control_rom(input wire [7:0] instr,
         cc  = instr[1:0];
 
         data_bus_src = `DATA_BUS_SRC_NONE;
+        `CONTROL_ROM_BUNDLE = `UOP_NOP;
 
         // the first part of the instruction is always instruction fetch
         if (cyc_count == 'b0) begin
@@ -610,8 +611,8 @@ module control_rom(input wire [7:0] instr,
                      end
                   end
 
-                  //////////////// rotate zpg
-                  {3'b0??, 3'b001}: begin
+                  //////////////// rotate zpg, {inc,dec} zpg
+                  {3'b0??, 3'b001}, {3'b11?, 3'b001}: begin
                      case(cyc_count)
                        'b001: `CONTROL_ROM_BUNDLE = `UOP_LOAD_IDL_LOW_FROM_PCPTR;
                        'b010: begin
@@ -627,17 +628,22 @@ module control_rom(input wire [7:0] instr,
                        end
                        'b100: begin
                           `CONTROL_ROM_BUNDLE = `UOP_NOP;
-                          alu_op = {3'b101, aaa[1:0]};
                           alu_op1_src = `ALU_OP1_SRC_RMWL;
                           rw_control = `RW_CONTROL_WRITE;
                           addr_bus_src = `ADDR_BUS_SRC_IDL_LOW;
                           data_bus_src = `DATA_BUS_SRC_ALU_OUT;
                           cyc_count_control = `CYC_COUNT_RESET;
+                          if (aaa[2] == 1'b0) begin
+                             alu_op = {3'b101, aaa[1:0]};
+                          end else begin
+                             alu_op2_src = (aaa[0] == 1'b0) ? `ALU_OP2_SRC_NEG1 : `ALU_OP2_SRC_1;
+                             alu_op = `ALU_OP_INC;
+                          end
                        end
                      endcase
                   end // case: {3'b0??, 3'b001}
 
-                  //////////////// rotate abs
+                  //////////////// rotate abs, {inc,dec} abs
                   {3'b0??, 3'b011}: begin
                      case(cyc_count)
                        'b001: `CONTROL_ROM_BUNDLE = `UOP_LOAD_IDL_LOW_FROM_PCPTR;
@@ -655,12 +661,17 @@ module control_rom(input wire [7:0] instr,
                        end
                        'b101: begin
                           `CONTROL_ROM_BUNDLE = `UOP_NOP;
-                          alu_op = {3'b101, aaa[1:0]};
                           alu_op1_src = `ALU_OP1_SRC_RMWL;
                           rw_control = `RW_CONTROL_WRITE;
-                          addr_bus_src = `ADDR_BUS_SRC_IDL;
+                          addr_bus_src = `ADDR_BUS_SRC_IDL_LOW;
                           data_bus_src = `DATA_BUS_SRC_ALU_OUT;
                           cyc_count_control = `CYC_COUNT_RESET;
+                          if (aaa[2] == 1'b0) begin
+                             alu_op = {3'b101, aaa[1:0]};
+                          end else begin
+                             alu_op2_src = (aaa[0] == 1'b0) ? `ALU_OP2_SRC_NEG1 : `ALU_OP2_SRC_1;
+                             alu_op = `ALU_OP_INC;
+                          end
                        end
                      endcase
                   end // case: {3'b0??, 3'b011}
@@ -687,16 +698,22 @@ module control_rom(input wire [7:0] instr,
                        end
                        'b101: begin
                           `CONTROL_ROM_BUNDLE = `UOP_NOP;
-                          alu_op = {3'b101, aaa[1:0]};
                           alu_op1_src = `ALU_OP1_SRC_RMWL;
                           rw_control = `RW_CONTROL_WRITE;
                           addr_bus_src = `ADDR_BUS_SRC_IDL_LOW;
                           data_bus_src = `DATA_BUS_SRC_ALU_OUT;
                           cyc_count_control = `CYC_COUNT_RESET;
+                          if (aaa[2] == 1'b0) begin
+                             alu_op = {3'b101, aaa[1:0]};
+                          end else begin
+                             alu_op2_src = (aaa[0] == 1'b0) ? `ALU_OP2_SRC_NEG1 : `ALU_OP2_SRC_1;
+                             alu_op = `ALU_OP_INC;
+                          end
                        end
                      endcase
                   end // case: {3'b0??, 3'b011}
 
+                  //////////////// rotate abs, X
                   {3'b0??, 3'b111}: begin
                      case(cyc_count)
                        'b001: `CONTROL_ROM_BUNDLE = `UOP_LOAD_IDL_LOW_FROM_PCPTR;
@@ -729,12 +746,17 @@ module control_rom(input wire [7:0] instr,
 
                        'b110: begin
                           `CONTROL_ROM_BUNDLE = `UOP_NOP;
-                          alu_op = {3'b101, aaa[1:0]};
                           alu_op1_src = `ALU_OP1_SRC_RMWL;
                           rw_control = `RW_CONTROL_WRITE;
-                          addr_bus_src = `ADDR_BUS_SRC_IDL;
+                          addr_bus_src = `ADDR_BUS_SRC_IDL_LOW;
                           data_bus_src = `DATA_BUS_SRC_ALU_OUT;
                           cyc_count_control = `CYC_COUNT_RESET;
+                          if (aaa[2] == 1'b0) begin
+                             alu_op = {3'b101, aaa[1:0]};
+                          end else begin
+                             alu_op2_src = (aaa[0] == 1'b0) ? `ALU_OP2_SRC_NEG1 : `ALU_OP2_SRC_1;
+                             alu_op = `ALU_OP_INC;
+                          end
                        end
                      endcase // case (cyc_count)
                   end

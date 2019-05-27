@@ -130,6 +130,7 @@ module cpu_2a03(input clock,
           `ALU_OP1_SRC_Y:     alu_op1 = Y;
           `ALU_OP1_SRC_SP:    alu_op1 = SP;
           `ALU_OP1_SRC_RMWL:  alu_op1 = RMWL;
+          default:            alu_op1 = 'h00;
         endcase
 
         case(alu_op2_src)
@@ -139,13 +140,16 @@ module cpu_2a03(input clock,
           `ALU_OP2_SRC_Y:        alu_op2 = Y;
           `ALU_OP2_SRC_1:        alu_op2 = 8'h01;
           `ALU_OP2_SRC_NEG1:     alu_op2 = 8'hff;
+          default:               alu_op2 = 'h00;
         endcase
 
         c6 = 'h0;
+        alu_out = 'h0;
         alu_flags_overwrite = 'h0;
         alu_flags_out = 'h0;
         alu_flags_out[1] = (alu_out == 8'h00);
         alu_flags_out[7] = alu_out[7];
+        pch_carryw = pch_carry;
 
         case(alu_op)
           `ALU_OP_OR:  begin
@@ -174,7 +178,7 @@ module cpu_2a03(input clock,
           end
 
           `ALU_OP_STA: begin
-             alu_out = 8'h0;
+             alu_out = 8'h00;
           end
 
           // LDA
@@ -263,8 +267,9 @@ module cpu_2a03(input clock,
              alu_flags_out[7] = alu_out[7];
              alu_flags_out[1] = (alu_out == 8'h00);
              alu_flags_out[0] = alu_op1[7];
-          end
-          default: alu_out = 8'ha5;
+          end // case: `ALU_OP_LSR, `ALU_OP_ROR
+
+          default: alu_out = 8'h00;
         endcase
      end
 
@@ -276,6 +281,7 @@ module cpu_2a03(input clock,
           `ADDR_BUS_SRC_IDL_LOW: addr = {8'b0, IDL[7:0]};
           `ADDR_BUS_SRC_IDL: addr = IDL;
           `ADDR_BUS_SRC_SP: addr = {8'h01, SP};
+          default:          addr = 16'h0000;
         endcase
      end
 
@@ -322,6 +328,7 @@ module cpu_2a03(input clock,
                 rw <= `RW_WRITE;
              end
           end
+          default: rw <= `RW_READ;
         endcase
      end
 
@@ -427,6 +434,7 @@ module cpu_2a03(input clock,
                end
             end
             `FLAGS_SRC_DATA_BUS: flags <= data_in;
+            default: flags <= flags;
           endcase
        end
      else
@@ -442,7 +450,6 @@ module cpu_2a03(input clock,
           instr     <= 'b0;
           flags     <= 'b0;
           IDL       <= 'b0;
-          data_out  <= 'b0;
           cyc_count <= 'b0;
        end // else: !if(nreset)
      end // always @(posedge clock)

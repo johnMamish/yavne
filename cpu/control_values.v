@@ -129,7 +129,8 @@
 `define ALU_OP_IDLH_CARRY 5'hd   // IDLH <= IDLH + carry
 
 `define ALU_OP_INC 5'he     // add op1 and op2 without carry.
-`define ALU_OP_INC_NOFLAGS 5'hf  // add op1 and op2 without carry and without modifying flags.
+// add op1 and op2 without carry and without modifying flags for SP.
+`define ALU_OP_INC_NOFLAGS 5'hf
 
 `define ALU_OP_CLC 5'h10
 `define ALU_OP_SEC 5'h11
