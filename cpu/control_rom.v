@@ -605,7 +605,6 @@ module control_rom(input wire [7:0] instr,
 
                   //////////////// rotate zpg, {inc,dec} zpg
                   {3'b0??, 3'b001}, {3'b11?, 3'b001}: begin
-                     $display("1aaz");
                      case(cyc_count)
                        'b001: `CONTROL_ROM_BUNDLE = `UOP_LOAD_IDL_LOW_FROM_PCPTR;
                        'b010: begin
@@ -636,9 +635,13 @@ module control_rom(input wire [7:0] instr,
                      endcase
                   end // case: {3'b0??, 3'b001}
 
+                  //////////////// rotate A
+                  {3'b0??, 3'b010}: begin
+
+                  end
+
                   //////////////// rotate abs, {inc,dec} abs
                   {3'b0??, 3'b011}, {3'b11?, 3'b011}: begin
-                     $display("3aaz");
                      case(cyc_count)
                        'b001: `CONTROL_ROM_BUNDLE = `UOP_LOAD_IDL_LOW_FROM_PCPTR;
                        'b010: `CONTROL_ROM_BUNDLE = `UOP_LOAD_IDL_HI_FROM_PCPTR;
@@ -672,7 +675,6 @@ module control_rom(input wire [7:0] instr,
 
                   //////////////// rotate zpg, X
                   {3'b0??, 3'b101}, {3'b11?, 3'b101}: begin
-                     $display("5aaz");
                      case(cyc_count)
                        'b001: `CONTROL_ROM_BUNDLE = `UOP_LOAD_IDL_LOW_FROM_PCPTR;
                        // IDL_low <= X + IDL_low
@@ -710,7 +712,6 @@ module control_rom(input wire [7:0] instr,
 
                   //////////////// rotate abs, X
                   {3'b0??, 3'b111}, {3'b11?, 3'b111}: begin
-                     $display("7aaz");
                      case(cyc_count)
                        'b001: `CONTROL_ROM_BUNDLE = `UOP_LOAD_IDL_LOW_FROM_PCPTR;
 
@@ -758,7 +759,6 @@ module control_rom(input wire [7:0] instr,
                   end
 
                   default: begin
-                     $display("default reached :(");
                   end
                 endcase // case ({aaa, bbb})
              end
