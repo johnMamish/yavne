@@ -117,16 +117,18 @@
 `define ALU_OP_CMP 5'h6
 `define ALU_OP_SBC 5'h7
 
-`define ALU_OP_NOP 5'h8
+`define ALU_OP_BIT 5'h8
 
-`define ALU_OP_PCL 5'h9         // PCL <= PCL + IDL
-`define ALU_OP_PCH 5'ha         // PCH <= PCH + carry + idl[7] sign extend
+`define ALU_OP_NOP 5'h9
 
-`define ALU_OP_IDLL_ADD 5'hb     // IDLL <= IDLL + op2
-`define ALU_OP_IDLH_CARRY 5'hc   // IDLH <= IDLH + carry
+`define ALU_OP_PCL 5'ha         // PCL <= PCL + IDL
+`define ALU_OP_PCH 5'hb         // PCH <= PCH + carry + idl[7] sign extend
 
-`define ALU_OP_INC 5'hd     // add op1 and op2 without carry.
-`define ALU_OP_INC_NOFLAGS 5'he  // add op1 and op2 without carry and without modifying flags.
+`define ALU_OP_IDLL_ADD 5'hc     // IDLL <= IDLL + op2
+`define ALU_OP_IDLH_CARRY 5'hd   // IDLH <= IDLH + carry
+
+`define ALU_OP_INC 5'he     // add op1 and op2 without carry.
+`define ALU_OP_INC_NOFLAGS 5'hf  // add op1 and op2 without carry and without modifying flags.
 
 `define ALU_OP_CLC 5'h10
 `define ALU_OP_SEC 5'h11
@@ -509,6 +511,32 @@ module control_rom(input wire [7:0] instr,
                        end
                      endcase
                   end // case: {3'b0??, 3'h2}
+
+                  // BIT
+                  {3'b001, 3'b0?1}: begin
+                     case(cyc_count)
+                       'b001: `CONTROL_ROM_BUNDLE = `UOP_LOAD_IDL_LOW_FROM_PCPTR;
+                       'b010: begin
+                          if (bbb == 3'b011) begin
+                             `CONTROL_ROM_BUNDLE = `UOP_LOAD_IDL_HI_FROM_PCPTR;
+                          end else begin
+                             // route *IDL_l to ALU input
+                             `CONTROL_ROM_BUNDLE = `UOP_NOP;
+                             alu_op = `ALU_OP_BIT;
+                             addr_bus_src = `ADDR_BUS_SRC_IDL_LOW;
+                             alu_op2_src = `ALU_OP2_SRC_DATA_BUS;
+                             cyc_count_control = `CYC_COUNT_RESET;
+                          end
+                       end // case: 'b010
+                       'b011: begin
+                          `CONTROL_ROM_BUNDLE = `UOP_NOP;
+                          alu_op = `ALU_OP_BIT;
+                          addr_bus_src = `ADDR_BUS_SRC_IDL;
+                          alu_op2_src = `ALU_OP2_SRC_DATA_BUS;
+                          cyc_count_control = `CYC_COUNT_RESET;
+                       end
+                     endcase
+                  end
 
                   // PLP, PLA
                   {3'b0?1, 3'h2}: begin
@@ -1103,7 +1131,7 @@ module cpu_2a03(input clock,
 
    //////////////// ALU
    // TODO: carry logic
-   // TODO: flags register'
+   // TODO: flags register
    // TODO: figure out difference between carry and overflow flags!
    // NV-BDIZC
    // TODO: pch_carry signals are doing double-duty for program counter and IDL. needs rename.
@@ -1192,6 +1220,15 @@ module cpu_2a03(input clock,
              {alu_flags_out[0], alu_out[7]} = A[7] + op2_neg[7] + c6;
              alu_flags_out[6] = c6 ^ alu_flags_out[0];
              alu_flags_overwrite = 8'b1100_0011;
+          end
+
+          `ALU_OP_BIT: begin
+             alu_out = 8'h00;
+             //A AND M, M7 -> N, M6 -> V
+             alu_flags_overwrite = 1100_0010;
+             alu_flags_out[7] = alu_op2[7];
+             alu_flags_out[6] = alu_op2[6];
+             alu_flags_out[1] = ((alu_op1 & alu_op2) == 'h00);
           end
 
           `ALU_OP_NOP: begin
