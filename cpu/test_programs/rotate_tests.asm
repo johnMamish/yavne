@@ -37,5 +37,27 @@
     .byte $06, $a0              ; asl $a0
     .byte $06, $a0              ; asl $a0
 
+
+    ;; repeat with zpg, X
+    lda #$01
+    sta $b0                     ;*$b0 == $01
+    ldx #$08
+    .byte $16, $a8              ;asl $a8, X
+    sec
+    .byte $16, $a8              ;asl $a8, X
+    sec
+    .byte $36, $a8              ;rol $a8, X9
+
+    ;; check negative, carry, and zero flags
+    .byte $16, $a8              ;asl $a8, X
+    .byte $16, $a8              ;asl $a8, X
+    .byte $16, $a8              ;asl $a8, X
+    .byte $16, $a8              ;asl $a8, X
+    .byte $16, $a8              ;asl $a8, X
+    .byte $16, $a8              ;asl $a8, X
+    .byte $16, $a8              ;asl $a8, X
+    .byte $16, $a8              ;asl $a8, X
+
+
 _done:
     jmp _done
