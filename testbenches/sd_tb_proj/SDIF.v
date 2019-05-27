@@ -23,7 +23,7 @@ module SDIF(input wire clock,
         reg [4:0] next_pts, pts, next_state;
         reg [9:0] cv, ncv;
         reg [7:0] com, next_com;
-        reg [8:0] crc_counter;
+        reg [8:0] crc_counter, n_crc_counter;
         reg [31:0] addr, next_addr;
         wire [7:0] rbw, ib_in;
         reg [7:0] rb;
@@ -114,7 +114,7 @@ module SDIF(input wire clock,
                 state     	 <= next_state;
                 com         <= 8'h40 | next_com;
                 ib_v     	 <= next_ib_v;
-                     crc_counter <= crc_counter + 1'b1;
+                     crc_counter <= n_crc_counter;
                      crc_reg <= next_crc_reg;
                      pts            <= next_pts;
                 if (byte_ready)
@@ -128,6 +128,7 @@ module SDIF(input wire clock,
         end
 
         always @* begin
+				n_crc_counter = crc_counter + 1'b1;
             next_addr = addr;
             next_state = state;
             ncv = cv;
@@ -208,6 +209,7 @@ module SDIF(input wire clock,
                         next_ss = 1;
                         next_ib_v = 0; 
                         next_addr = 0;
+								n_crc_counter = 1'b1;
                     end else if (cv >= 16) begin
                         next_state = state_reset3;
                         next_ss = 1'b1;
@@ -226,6 +228,7 @@ module SDIF(input wire clock,
 
 
                 state_reset6: begin
+						  n_crc_counter = 1'b1;
                     if ( cv > 6 && cv < 16 && (rb == 8'd1 || rb == 8'd5)) begin
                         next_state = state_reset7;
                         spir = 1;
@@ -236,6 +239,8 @@ module SDIF(input wire clock,
                         next_addr = (rb == 8'd1) ? 32'h40000000 : 0;
                     end else if (cv >= 16) begin
                         next_state = state_reset5;
+							
+
                         next_ss = 1'b1;
                         spir = 1'b1;
                     end
@@ -259,7 +264,9 @@ module SDIF(input wire clock,
                         next_ib_v = 1;
                         next_com = (rb == 8'd0) ? com_41 : com_init;
                         next_addr = 0; 
+								n_crc_counter = 1'b1;
                     end else if (cv >= 16) begin
+								n_crc_counter = 1'b1;
                         next_state = state_reset5;
                         next_ss = 1'b1;
                         spir = 1'b1;
