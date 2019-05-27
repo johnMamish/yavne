@@ -76,12 +76,14 @@
 /////////////////// SP
 `define SP_SRC_SP      2'h0
 `define SP_SRC_ALU_OUT 2'h1
+`define SP_SRC_X       2'h2
 
 
 /////////////////// X register
 `define X_SRC_X  2'h0
 `define X_SRC_ACCUM 2'h1
 `define X_SRC_ALU_OUT 2'h2
+`define X_SRC_SP  2'h3
 
 
 /////////////////// Y register
@@ -984,6 +986,16 @@ module control_rom(input wire [7:0] instr,
                           end
                        end // case: 'b010
                      endcase
+                  end // case: {3'b10?, 3'h3}
+
+                  {3'b10?, 3'b110}: begin
+                     `CONTROL_ROM_BUNDLE = `UOP_NOP;
+                     cyc_count_control = `CYC_COUNT_RESET;
+                     if (aaa[0] == 1'b0) begin
+                        sp_src = `SP_SRC_X;
+                     end else begin
+                        x_src = `X_SRC_SP;
+                     end
                   end
                 endcase // case ({aaa, bbb})
              end
@@ -1289,12 +1301,14 @@ module cpu_2a03(input clock,
           case(sp_src)
             `SP_SRC_SP:        SP <= SP;
             `SP_SRC_ALU_OUT:    SP <= alu_out;
+            `SP_SRC_X:         SP <= X;
           endcase
 
           case(x_src)
             `X_SRC_X:        X <= X;
             `X_SRC_ACCUM:    X <= A;
             `X_SRC_ALU_OUT:  X <= alu_out;
+            `X_SRC_SP:       X <= SP;
           endcase
 
           case(y_src)
