@@ -39,13 +39,13 @@ module SDIF(input wire clock,
         assign sd_byte = valid_read ? rb : 0;
         assign idle = (state == state_idle);
           
-        assign ib_in = (cv == 10'd0) ? com :
-                       (cv == 10'd1) ? addr[31:24] :
-                       (cv == 10'd2) ? addr[23:16] :
-                       (cv == 10'd3) ? addr[15:8]  :
-                       (cv == 10'd4) ? addr[7:0]   :
-                       (cv == 10'd5) ? crc         :
-                       8'h00;
+        assign ib_in = (cv == 10'd1) ? com :
+                       (cv == 10'd2) ? addr[31:24] :
+                       (cv == 10'd3) ? addr[23:16] :
+                       (cv == 10'd4) ? addr[15:8]  :
+                       (cv == 10'd5) ? addr[7:0]   :
+                       (cv == 10'd6) ? crc         :
+                       8'hFF;
 
 
 
@@ -87,6 +87,8 @@ module SDIF(input wire clock,
          parameter state_reset7 = 5'd15;
          parameter state_reset8 = 5'd16;
 
+			
+			
          parameter com_reset = 8'd0;
          parameter com_vc      = 8'd8;
          parameter com_init  = 8'd1;
@@ -179,7 +181,7 @@ module SDIF(input wire clock,
                 end
                 
                 state_reset2: begin
-                    if ( cv > 6 && rb != 8'hff) begin
+                    if ( cv > 6 && rb == 8'd1) begin
                         next_ss = 1;
                         ncv = 7;
                         spir = 1;
@@ -187,7 +189,7 @@ module SDIF(input wire clock,
                         next_pts = state_reset3;
                         next_addr = 32'h000001aa;
                         next_com = com_vc;
-                    end else if (cv > 50) begin
+                    end else if (cv > 16) begin
                          next_state = state_reset1;
                       end
                                 
@@ -202,7 +204,7 @@ module SDIF(input wire clock,
                 end
 
                 state_reset4: begin
-                    if ( cv > 6 && cv < 16 && rb == 8'd1) begin
+                    if ( cv > 6 && cv < 16 && rb == 8'haa) begin
                         next_state = state_reset5;
                         spir = 1;
                         ncv = 0; 
@@ -228,16 +230,16 @@ module SDIF(input wire clock,
 
 
                 state_reset6: begin
-						  n_crc_counter = 1'b1;
-                    if ( cv > 6 && cv < 16 && (rb == 8'd1 || rb == 8'd5)) begin
+							
+                    if ( cv > 6 && cv < 24 && (rb == 8'd1 || rb == 8'd5)) begin
                         next_state = state_reset7;
                         spir = 1;
                         ncv = 0; 
                         next_ss = 1;
                         next_ib_v = 1;
-                        next_com = (rb == 8'd1) ? com_41 : com_init;
-                        next_addr = (rb == 8'd1) ? 32'h40000000 : 0;
-                    end else if (cv >= 16) begin
+                        next_com = com_41;
+                        next_addr = 32'h40000000 ;
+                    end else if (cv >= 24) begin
                         next_state = state_reset5;
 							
 
@@ -256,7 +258,7 @@ module SDIF(input wire clock,
 
                 
                 state_reset8: begin
-                    if ( cv > 6 && cv < 16 && (rb == 8'd0 || rb == 8'd5)) begin
+                    if ( cv > 6 && cv < 16 && (rb == 8'd0)) begin
                         next_state = (rb == 8'd0) ? state_idle : state_reset7;
                         spir = 1;
                         ncv = 0; 
@@ -292,18 +294,17 @@ module SDIF(input wire clock,
                     if ( cv > 6 && cv < 16 && rb == 0) begin
                         next_state = state_read1;
                         ncv = 10;
-                        spir = 1;
+                  
                     end else if ( cv >= 16) begin
-                        next_state = state_fail;
+                        next_state = state_idle;
                     end
                 end
 
                 state_read1: begin
                     if( ncv == 0) 
                         ncv = 10;
-                    if ( rb == 8'hFE) begin
-                        next_state = state_read2;
-                        spir = 1;
+                    if ( rb == 8'hfe) begin
+                        next_state = state_read3;
                         ncv = 10;
                     end
                 end
