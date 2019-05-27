@@ -20,26 +20,20 @@ module mem(input clock,
 endmodule
 
 module cpu_testbench();
-   //
-   wire [7:0] input_value;
-   wire [7:0] bidir_signal;
-   reg [7:0]  output_value;
-   reg        output_value_valid;
-
    // hook up memory and cpu
    reg  clock;
    reg  nreset;
    wire [15:0] addr;
    wire [7:0]  bidir;
+   wire [7:0]  data_from_cpu;
    wire [7:0]  data_from_mem;
    wire rw;
-
-   assign bidir = (rw == 1'b0)? 8'hzz : data_from_mem;
 
    cpu_2a03 cpu(.clock(clock),
                 .nreset(nreset),
                 .addr(addr),
-                .data(bidir),
+                .data_in(data_from_mem),
+                .data_out(data_from_cpu),
                 .rw(rw),
                 .nnmi(1'b1),
                 .nirq(1'b1),
@@ -47,7 +41,7 @@ module cpu_testbench();
                 .naddr4017r(),
                 .addr4016w());
 
-   mem memory(.clock(~clock), .addr(addr), .rw(rw), .data_in(bidir), .data_out(data_from_mem));
+   mem memory(.clock(~clock), .addr(addr), .rw(rw), .data_in(data_from_cpu), .data_out(data_from_mem));
 
    // generate 1MHz clock
    reg [3:0] cyc_count_prev;

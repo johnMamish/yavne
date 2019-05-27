@@ -24,14 +24,16 @@
  * @input nreset    - not-reset. On a low-to-high transition of this pin, the system will restart.
  *                    When this pin is held low, the system is halted in reset
  * @output addr     - system address bus.
- * @inout  data     - System data bus
+ * @input  data_in  - System data bus from mem to cpu
+ * @output data_out - System data bus from cpu to mem
  * @output rw       - direction of 6502's data bus (0=write;1=read)
  *
  */
 module cpu_2a03(input clock,
                 input             nreset,
                 output reg [15:0] addr,
-                inout [7:0]       data,
+                input [7:0]       data_in,
+                output reg [7:0]  data_out,
                 output reg        rw,
                 input             nnmi,
                 input             nirq,
@@ -64,10 +66,6 @@ module cpu_2a03(input clock,
 
    // Read-modify-write latch
    reg [7:0]  RMWL;
-
-   // output data latch
-   reg [7:0] ODL;
-   assign data = (rw == `RW_WRITE) ? ODL : 8'hzz;
    reg [2:0] cyc_count;
 
    //////////////// control rom
@@ -127,7 +125,7 @@ module cpu_2a03(input clock,
      begin
         case(alu_op1_src)
           `ALU_OP1_SRC_A:     alu_op1 = A;
-          `ALU_OP1_SRC_DATA:  alu_op1 = data;
+          `ALU_OP1_SRC_DATA:  alu_op1 = data_in;
           `ALU_OP1_SRC_X:     alu_op1 = X;
           `ALU_OP1_SRC_Y:     alu_op1 = Y;
           `ALU_OP1_SRC_SP:    alu_op1 = SP;
@@ -135,7 +133,7 @@ module cpu_2a03(input clock,
         endcase
 
         case(alu_op2_src)
-          `ALU_OP2_SRC_DATA_BUS: alu_op2 = data;
+          `ALU_OP2_SRC_DATA_BUS: alu_op2 = data_in;
           `ALU_OP2_SRC_IDL_LOW:  alu_op2 = IDL[7:0];
           `ALU_OP2_SRC_X:        alu_op2 = X;
           `ALU_OP2_SRC_Y:        alu_op2 = Y;
@@ -284,15 +282,15 @@ module cpu_2a03(input clock,
    //////////////// mux for data bus
    always @ *
      begin
-        ODL = 'h0;
+        data_out = 'h0;
         case(data_bus_src)
-          `DATA_BUS_SRC_NONE: ODL = 8'h00;
-          `DATA_BUS_SRC_ACCUM: ODL = A;
-          `DATA_BUS_SRC_X: ODL = X;
-          `DATA_BUS_SRC_Y: ODL = Y;
-          `DATA_BUS_SRC_FLAGS: ODL = flags;
-          `DATA_BUS_SRC_ALU_OUT: ODL = alu_out;
-          `DATA_BUS_SRC_RMWL: ODL = RMWL;
+          `DATA_BUS_SRC_NONE: data_out = 8'h00;
+          `DATA_BUS_SRC_ACCUM: data_out = A;
+          `DATA_BUS_SRC_X: data_out = X;
+          `DATA_BUS_SRC_Y: data_out = Y;
+          `DATA_BUS_SRC_FLAGS: data_out = flags;
+          `DATA_BUS_SRC_ALU_OUT: data_out = alu_out;
+          `DATA_BUS_SRC_RMWL: data_out = RMWL;
         endcase
      end
 
@@ -364,34 +362,34 @@ module cpu_2a03(input clock,
           // instruction register
           case(instr_reg_src)
             `INSTR_REG_SRC_INSTR_REG: instr <= instr;
-            `INSTR_REG_SRC_DATA_BUS:  instr <= data;
-            `INSTR_REG_SRC_DATA_BUS_IF_NOBRANCH: instr <= (do_branch) ? instr : data;
-            `INSTR_REG_SRC_DATA_BUS_IF_SAMEPAGE: instr <= (page_boundary_crossed) ? instr : data;
+            `INSTR_REG_SRC_DATA_BUS:  instr <= data_in;
+            `INSTR_REG_SRC_DATA_BUS_IF_NOBRANCH: instr <= (do_branch) ? instr : data_in;
+            `INSTR_REG_SRC_DATA_BUS_IF_SAMEPAGE: instr <= (page_boundary_crossed) ? instr : data_in;
           endcase
 
           // update internal data latch
           case(idl_low_src)
             `IDL_LOW_SRC_IDL_LOW:  IDL[7:0] <= IDL[7:0];
-            `IDL_LOW_SRC_DATA_BUS: IDL[7:0] <= data[7:0];
+            `IDL_LOW_SRC_DATA_BUS: IDL[7:0] <= data_in[7:0];
             `IDL_LOW_SRC_ALU_OUT:  IDL[7:0] <= alu_out;
           endcase
           case(idl_hi_src)
             `IDL_HI_SRC_IDL_HI:   IDL[15:8] <= IDL[15:8];
-            `IDL_HI_SRC_DATA_BUS: IDL[15:8] <= data[7:0];
+            `IDL_HI_SRC_DATA_BUS: IDL[15:8] <= data_in[7:0];
             `IDL_HI_SRC_IDL_HI_CARRY: IDL[15:8] <= IDL[15:8] + pch_carry;
           endcase
 
           // update read-modify-write latch
           case(rmwl_src)
             `RMWL_SRC_RMWL:     RMWL <= RMWL;
-            `RMWL_SRC_DATA_BUS: RMWL <= data;
+            `RMWL_SRC_DATA_BUS: RMWL <= data_in;
           endcase
 
           // update program counter
           casez(pc_src)
             `PC_SRC_PC:           PC <= PC;
             `PC_SRC_PC_PLUS1:     PC <= PC + 1;
-            `PCH_SRC_DATABUS_PCL_SRC_IDLL:     PC <= {data, IDL[7:0]};
+            `PCH_SRC_DATABUS_PCL_SRC_IDLL:     PC <= {data_in, IDL[7:0]};
 
             //////// branching
             4'b1???: begin
@@ -428,7 +426,7 @@ module cpu_2a03(input clock,
                   flags[i] <= alu_flags_overwrite[i] ? alu_flags_out[i] : flags[i];
                end
             end
-            `FLAGS_SRC_DATA_BUS: flags <= data;
+            `FLAGS_SRC_DATA_BUS: flags <= data_in;
           endcase
        end
      else
@@ -444,7 +442,7 @@ module cpu_2a03(input clock,
           instr     <= 'b0;
           flags     <= 'b0;
           IDL       <= 'b0;
-          ODL       <= 'b0;
+          data_out  <= 'b0;
           cyc_count <= 'b0;
        end // else: !if(nreset)
      end // always @(posedge clock)
