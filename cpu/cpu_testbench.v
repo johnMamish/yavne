@@ -64,8 +64,8 @@ module cpu_testbench();
         if (clock && (cpu.cyc_count <= cyc_count_prev)) begin
            $display("\n");
         end
-        $display("addrbus = $%h; databus = $%h; PC = $%h; A = $%h; X = %h; Y = %h; cyccount = %h; %b",
-                 addr, bidir, cpu.PC, cpu.A, cpu.X, cpu.Y, cpu.cyc_count, cpu.flags);
+        $display("addr $%h; data $%h; PC $%h; A $%h; X %h; Y %h; SP %h; IDL %h; cyc = %h; %b",
+                 addr, bidir, cpu.PC, cpu.A, cpu.X, cpu.Y, cpu.SP, cpu.IDL, cpu.cyc_count, cpu.flags);
      end
 
    integer i;
@@ -89,7 +89,7 @@ module cpu_testbench();
         nreset = 1'b0; #3000;
 
         // let MCU run for a bit?
-        nreset = 1'b1; #250000;
+        nreset = 1'b1; #350000;
 
         // write to memory file
         $writememh("cpu_mem_state.hex", memory.memory);

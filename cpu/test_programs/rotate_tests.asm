@@ -59,5 +59,15 @@
     .byte $16, $a8              ;asl $a8, X
 
 
+    ;; repeat with abs,X
+    lda #$01
+    sta $2b0                     ;*$b0 == $01
+    ldx #$08
+    asl $2a8, X
+    sec
+    asl $2a8, X
+    sec
+    rol $2a8, X
+
 _done:
     jmp _done

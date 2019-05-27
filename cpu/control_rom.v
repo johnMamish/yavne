@@ -697,6 +697,48 @@ module control_rom(input wire [7:0] instr,
                      endcase
                   end // case: {3'b0??, 3'b011}
 
+                  {3'b0??, 3'b111}: begin
+                     case(cyc_count)
+                       'b001: `CONTROL_ROM_BUNDLE = `UOP_LOAD_IDL_LOW_FROM_PCPTR;
+
+                       'b010: begin
+                          `CONTROL_ROM_BUNDLE = `UOP_LOAD_IDL_HI_FROM_PCPTR;
+                          idl_low_src = `IDL_LOW_SRC_ALU_OUT;
+                          alu_op      = `ALU_OP_IDLL_ADD;
+                          alu_op2_src = `ALU_OP2_SRC_X;
+                       end
+
+                       'b011: begin
+                          // this cycle is basically a nop; bit it also corrects IDLH
+                          `CONTROL_ROM_BUNDLE = `UOP_LOAD_RMWL;
+                          idl_hi_src = `IDL_HI_SRC_IDL_HI_CARRY;
+                       end
+
+                       'b100: begin
+                          // this cycle is basically a nop
+                          `CONTROL_ROM_BUNDLE = `UOP_LOAD_RMWL;
+                       end
+
+                       'b101: begin
+                          // this cycle is also basically a nop
+                          `CONTROL_ROM_BUNDLE = `UOP_NOP;
+                          rw_control = `RW_CONTROL_WRITE;
+                          addr_bus_src = `ADDR_BUS_SRC_IDL;
+                          data_bus_src = `DATA_BUS_SRC_RMWL;
+                       end
+
+                       'b110: begin
+                          `CONTROL_ROM_BUNDLE = `UOP_NOP;
+                          alu_op = {3'b101, aaa[1:0]};
+                          alu_op1_src = `ALU_OP1_SRC_RMWL;
+                          rw_control = `RW_CONTROL_WRITE;
+                          addr_bus_src = `ADDR_BUS_SRC_IDL;
+                          data_bus_src = `DATA_BUS_SRC_ALU_OUT;
+                          cyc_count_control = `CYC_COUNT_RESET;
+                       end
+                     endcase // case (cyc_count)
+                  end
+
                 endcase // case ({aaa, bbb})
              end
 
