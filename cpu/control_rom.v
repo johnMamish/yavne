@@ -637,7 +637,11 @@ module control_rom(input wire [7:0] instr,
 
                   //////////////// rotate A
                   {3'b0??, 3'b010}: begin
-
+                     `CONTROL_ROM_BUNDLE = `UOP_NOP;
+                     accum_src = `ACCUM_SRC_ALU;
+                     alu_op1_src = `ALU_OP1_SRC_A;
+                     alu_op = {3'b101, aaa[1:0]};
+                     cyc_count_control = `CYC_COUNT_RESET;
                   end
 
                   //////////////// rotate abs, {inc,dec} abs

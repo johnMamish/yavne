@@ -69,5 +69,14 @@
     sec
     rol $2a8, X
 
+
+    ;; repeat with accum
+    lda #$01
+    asl a
+    sec
+    asl a
+    sec
+    rol a
+
 _done:
     jmp _done
