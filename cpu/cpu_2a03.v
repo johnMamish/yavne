@@ -662,6 +662,15 @@ module control_rom(input wire [7:0] instr,
                      cyc_count_control = `CYC_COUNT_RESET;
                   end
 
+                  // {CPX, CPY} #
+                  {3'b11?, 3'h0}: begin
+                     `CONTROL_ROM_BUNDLE = `UOP_PCPTR_INTO_ALUOP2;
+                     accum_src = `ACCUM_SRC_ACCUM;
+                     alu_op = `ALU_OP_CMP;
+                     alu_op1_src = (aaa[0] == 1'b0) ? `ALU_OP1_SRC_Y : `ALU_OP1_SRC_X;
+                     cyc_count_control = `CYC_COUNT_RESET;
+                  end
+
                   // {STY, LDY} zpg
                   {3'b10?, 3'h1}: begin
                      case(cyc_count)
@@ -1315,10 +1324,10 @@ module cpu_2a03(input clock,
           end
 
           `ALU_OP_CMP: begin
-             {c6, alu_out[6:0]} = alu_op1[6:0] + op2_neg[6:0] + flags[0];
-             {alu_flags_out[0], alu_out[7]} = alu_op1[7] + op2_neg[7] + c6;
-             alu_flags_out[6] = c6 ^ alu_flags_out[0];
-             alu_flags_overwrite = 8'b1100_0011;
+             {alu_flags_out[0], alu_out} = alu_op1 + op2_neg + 8'h01;
+             alu_flags_overwrite = 8'b1000_0011;
+             alu_flags_out[7] = alu_out[7];
+             alu_flags_out[1] = (alu_out == 'h0);
              alu_out = A;    // cheap trick to avoid adding extra cases to control rom
           end
 

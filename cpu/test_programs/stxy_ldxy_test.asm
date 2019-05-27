@@ -51,5 +51,16 @@
     adc #$01
     tax
 
+    ;; cpy, cpx test
+    ldx #$03
+    lda #$10
+_cpx_loop:
+    inx
+    clc
+    adc #$10
+    cpx #$05
+    bne _cpx_loop
+
+    ;; at end of loop, A should be $30
 _done:
     jmp _done
