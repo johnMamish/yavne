@@ -61,6 +61,30 @@ _cpx_loop:
     cpx #$05
     bne _cpx_loop
 
+    ;; cpy, cpx test
+    ldx #$03
+    lda #$05
+    sta $87
+    lda #$20
+_cpx_loop2:
+    inx
+    clc
+    adc #$20
+    .byte $e4, $87              ; cpx $87
+    bne _cpx_loop2
+
+    ;; cpy, cpx test
+    ldx #$03
+    lda #$05
+    sta $0870
+    lda #$30
+_cpx_loop3:
+    inx
+    clc
+    adc #$30
+    cpx $0870
+    bne _cpx_loop3
+
     ;; at end of loop, A should be $30
 _done:
     jmp _done

@@ -200,6 +200,37 @@ module control_rom(input wire [7:0] instr,
                      cyc_count_control = `CYC_COUNT_RESET;
                   end
 
+                  // {CPX, CPY} zpg
+                  {3'b11?, 3'h1}: begin
+                     case(cyc_count)
+                       'b001: `CONTROL_ROM_BUNDLE = `UOP_LOAD_IDL_LOW_FROM_PCPTR;
+                       'b010: begin
+                          `CONTROL_ROM_BUNDLE = `UOP_NOP;
+                          addr_bus_src = `ADDR_BUS_SRC_IDL_LOW;
+                          alu_op = `ALU_OP_CMP;
+                          alu_op1_src = (aaa[0] == 1'b0) ? `ALU_OP1_SRC_Y : `ALU_OP1_SRC_X;
+                          alu_op2_src = `ALU_OP2_SRC_DATA_BUS;
+                          cyc_count_control = `CYC_COUNT_RESET;
+                       end
+                     endcase
+                  end
+
+                  // {CPX, CPY} abs
+                  {3'b11?, 3'h3}: begin
+                     case(cyc_count)
+                       'b001: `CONTROL_ROM_BUNDLE = `UOP_LOAD_IDL_LOW_FROM_PCPTR;
+                       'b010: `CONTROL_ROM_BUNDLE = `UOP_LOAD_IDL_HI_FROM_PCPTR;
+                       'b011: begin
+                          `CONTROL_ROM_BUNDLE = `UOP_NOP;
+                          addr_bus_src = `ADDR_BUS_SRC_IDL;
+                          alu_op = `ALU_OP_CMP;
+                          alu_op1_src = (aaa[0] == 1'b0) ? `ALU_OP1_SRC_Y : `ALU_OP1_SRC_X;
+                          alu_op2_src = `ALU_OP2_SRC_DATA_BUS;
+                          cyc_count_control = `CYC_COUNT_RESET;
+                       end
+                     endcase
+                  end
+
                   // {STY, LDY} zpg
                   {3'b10?, 3'h1}: begin
                      case(cyc_count)
