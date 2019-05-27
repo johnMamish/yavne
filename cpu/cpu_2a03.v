@@ -55,7 +55,8 @@
 `define DATA_BUS_SRC_X 3'h2
 `define DATA_BUS_SRC_Y 3'h3
 `define DATA_BUS_SRC_FLAGS 3'h4
-
+`define DATA_BUS_SRC_ALU_OUT 3'h5
+`define DATA_BUS_SRC_RMWL 3'h6
 
 /////////////////// instruction register
 `define INSTR_REG_SRC_INSTR_REG             3'h0
@@ -106,6 +107,12 @@
 `define IDL_HI_SRC_DATA_BUS  2'b1
 `define IDL_HI_SRC_IDL_HI_CARRY 2'h2   // gross hack to save on confusing alu muxing.
 
+
+/////////////////// "read-modify-write" latch
+`define RMWL_SRC_RMWL 2'h0
+`define RMWL_SRC_DATA_BUS 2'h1
+
+
 /////////////////// ALU opcodes
 // these decide what gets put on the output of the ALU
 `define ALU_OP_OR  5'h0
@@ -134,12 +141,18 @@
 `define ALU_OP_SEC 5'h11
 `define ALU_OP_CLV 5'h12
 
+`define ALU_OP_ASL 5'h14
+`define ALU_OP_ROL 5'h15
+`define ALU_OP_LSR 5'h16
+`define ALU_OP_ROR 5'h17
+
 /////////////////// ALU operand1 source
-`define ALU_OP1_SRC_A         3'h0
-`define ALU_OP1_SRC_DATA      3'h1
-`define ALU_OP1_SRC_X      3'h2
-`define ALU_OP1_SRC_Y      3'h3
-`define ALU_OP1_SRC_SP     3'h4
+`define ALU_OP1_SRC_A       3'h0
+`define ALU_OP1_SRC_DATA    3'h1
+`define ALU_OP1_SRC_X       3'h2
+`define ALU_OP1_SRC_Y       3'h3
+`define ALU_OP1_SRC_SP      3'h4
+`define ALU_OP1_SRC_RMWL    3'h5
 
 /////////////////// ALU operand2 source
 `define ALU_OP2_SRC_DATA_BUS  3'h0
@@ -192,6 +205,7 @@ cyc_count_control = `CYC_COUNT_INCR;
                              instr_reg_src, \
                              idl_low_src,   \
                              idl_hi_src,    \
+                             rmwl_src,      \
                              accum_src,     \
                              sp_src,        \
                              x_src,         \
@@ -211,6 +225,7 @@ cyc_count_control = `CYC_COUNT_INCR;
                  `INSTR_REG_SRC_INSTR_REG,    \
                  `IDL_LOW_SRC_IDL_LOW,       \
                  `IDL_HI_SRC_IDL_HI,         \
+                 `RMWL_SRC_RMWL,             \
                  `ACCUM_SRC_ACCUM,           \
                  `SP_SRC_SP,                 \
                  `X_SRC_X,                   \
@@ -228,6 +243,7 @@ cyc_count_control = `CYC_COUNT_INCR;
                     `INSTR_REG_SRC_DATA_BUS,    \
                     `IDL_LOW_SRC_IDL_LOW,       \
                     `IDL_HI_SRC_IDL_HI,         \
+                    `RMWL_SRC_RMWL,             \
                     `ACCUM_SRC_ACCUM,           \
                     `SP_SRC_SP,                 \
                     `X_SRC_X,                   \
@@ -245,6 +261,7 @@ cyc_count_control = `CYC_COUNT_INCR;
                       `INSTR_REG_SRC_DATA_BUS,    \
                       `IDL_LOW_SRC_IDL_LOW,       \
                       `IDL_HI_SRC_IDL_HI,         \
+                      `RMWL_SRC_RMWL,             \
                       `ACCUM_SRC_ACCUM,           \
                       `SP_SRC_SP,                 \
                       `X_SRC_X,                   \
@@ -262,6 +279,7 @@ cyc_count_control = `CYC_COUNT_INCR;
                                        `INSTR_REG_SRC_INSTR_REG,    \
                                        `IDL_LOW_SRC_DATA_BUS,       \
                                        `IDL_HI_SRC_IDL_HI,          \
+                                       `RMWL_SRC_RMWL,             \
                                        `ACCUM_SRC_ACCUM,            \
                                        `SP_SRC_SP,                 \
                                        `X_SRC_X,                   \
@@ -279,6 +297,7 @@ cyc_count_control = `CYC_COUNT_INCR;
                                         `INSTR_REG_SRC_INSTR_REG,   \
                                         `IDL_LOW_SRC_IDL_LOW,       \
                                         `IDL_HI_SRC_DATA_BUS,       \
+                                       `RMWL_SRC_RMWL,             \
                                         `ACCUM_SRC_ACCUM,           \
                                        `SP_SRC_SP,                 \
                                        `X_SRC_X,                   \
@@ -297,6 +316,7 @@ cyc_count_control = `CYC_COUNT_INCR;
                                            `INSTR_REG_SRC_INSTR_REG,   \
                                            `IDL_LOW_SRC_IDL_LOW,       \
                                            `IDL_HI_SRC_IDL_HI,         \
+                                           `RMWL_SRC_RMWL,             \
                                            `ACCUM_SRC_ACCUM,           \
                                            `SP_SRC_SP,                 \
                                            `X_SRC_X,                   \
@@ -314,6 +334,7 @@ cyc_count_control = `CYC_COUNT_INCR;
                                `INSTR_REG_SRC_INSTR_REG,  \
                                `IDL_LOW_SRC_IDL_LOW,      \
                                `IDL_HI_SRC_IDL_HI,        \
+                               `RMWL_SRC_RMWL,             \
                                `ACCUM_SRC_ACCUM,          \
                                `SP_SRC_SP,                 \
                                `X_SRC_X,                   \
@@ -331,6 +352,7 @@ cyc_count_control = `CYC_COUNT_INCR;
                          `INSTR_REG_SRC_DATA_BUS_IF_NOBRANCH,  \
                          `IDL_LOW_SRC_IDL_LOW,      \
                          `IDL_HI_SRC_IDL_HI,        \
+                         `RMWL_SRC_RMWL,             \
                          `ACCUM_SRC_ACCUM,          \
                          `SP_SRC_SP,                 \
                          `X_SRC_X,                   \
@@ -348,6 +370,7 @@ cyc_count_control = `CYC_COUNT_INCR;
                          `INSTR_REG_SRC_DATA_BUS_IF_SAMEPAGE, \
                          `IDL_LOW_SRC_IDL_LOW,      \
                          `IDL_HI_SRC_IDL_HI,        \
+                         `RMWL_SRC_RMWL,             \
                          `ACCUM_SRC_ACCUM,          \
                          `SP_SRC_SP,                 \
                          `X_SRC_X,                   \
@@ -366,6 +389,7 @@ cyc_count_control = `CYC_COUNT_INCR;
                          `INSTR_REG_SRC_DATA_BUS,   \
                          `IDL_LOW_SRC_IDL_LOW,      \
                          `IDL_HI_SRC_IDL_HI,        \
+                         `RMWL_SRC_RMWL,             \
                          `ACCUM_SRC_ACCUM,          \
                          `SP_SRC_SP,                 \
                          `X_SRC_X,                   \
@@ -386,6 +410,7 @@ cyc_count_control = `CYC_COUNT_INCR;
                                `INSTR_REG_SRC_INSTR_REG, \
                                `IDL_LOW_SRC_IDL_LOW,\
                                `IDL_HI_SRC_IDL_HI,  \
+                               `RMWL_SRC_RMWL,             \
                                `ACCUM_SRC_ALU,      \
                                `SP_SRC_SP,                 \
                                `X_SRC_X,                   \
@@ -403,6 +428,7 @@ cyc_count_control = `CYC_COUNT_INCR;
                                  `INSTR_REG_SRC_INSTR_REG, \
                                  `IDL_LOW_SRC_IDL_LOW,\
                                  `IDL_HI_SRC_IDL_HI,  \
+                                 `RMWL_SRC_RMWL,             \
                                  `ACCUM_SRC_ALU,      \
                                  `SP_SRC_SP,                 \
                                  `X_SRC_X,                   \
@@ -420,6 +446,7 @@ cyc_count_control = `CYC_COUNT_INCR;
                            `INSTR_REG_SRC_INSTR_REG,   \
                            `IDL_LOW_SRC_ALU_OUT,       \
                            `IDL_HI_SRC_IDL_HI,         \
+                           `RMWL_SRC_RMWL,             \
                            `ACCUM_SRC_ACCUM,           \
                            `SP_SRC_SP,                 \
                            `X_SRC_X,                   \
@@ -431,6 +458,24 @@ cyc_count_control = `CYC_COUNT_INCR;
                            `ALU_OP1_SRC_A,             \
                            `ALU_OP2_SRC_DATA_BUS,      \
                            `CYC_COUNT_INCR}
+
+`define UOP_LOAD_RMWL {`RW_CONTROL_READ,           \
+                       `PC_SRC_PC,                 \
+                       `INSTR_REG_SRC_INSTR_REG,   \
+                       `IDL_LOW_SRC_IDL_LOW,       \
+                       `IDL_HI_SRC_IDL_HI,         \
+                       `RMWL_SRC_DATA_BUS,         \
+                       `ACCUM_SRC_ACCUM,           \
+                       `SP_SRC_SP,                 \
+                       `X_SRC_X,                   \
+                       `Y_SRC_Y,                   \
+                       `FLAGS_SRC_NEXT,            \
+                       `ADDR_BUS_SRC_IDL,          \
+                       `DATA_BUS_SRC_NONE,         \
+                       `ALU_OP_NOP,                \
+                       `ALU_OP1_SRC_A,             \
+                       `ALU_OP2_SRC_DATA_BUS,      \
+                       `CYC_COUNT_INCR}
 
 /**
  * A lot of the instruction decoding comes from the tables at the bottom of
@@ -453,6 +498,7 @@ module control_rom(input wire [7:0] instr,
                    output reg [2:0] instr_reg_src,
                    output reg [1:0] idl_low_src,
                    output reg [1:0] idl_hi_src,
+                   output reg [1:0] rmwl_src,
                    output reg [1:0] accum_src,
                    output reg [1:0] sp_src,
                    output reg [1:0] x_src,
@@ -1025,6 +1071,61 @@ module control_rom(input wire [7:0] instr,
                         x_src = `X_SRC_SP;
                      end
                   end
+
+                  //////////////// rotate zpg
+                  {3'b0??, 3'b001}: begin
+                     case(cyc_count)
+                       'b001: `CONTROL_ROM_BUNDLE = `UOP_LOAD_IDL_LOW_FROM_PCPTR;
+                       'b010: begin
+                          `CONTROL_ROM_BUNDLE = `UOP_LOAD_RMWL;
+                          addr_bus_src = `ADDR_BUS_SRC_IDL_LOW;
+                       end
+                       'b011: begin
+                          // this cycle is basically a nop
+                          `CONTROL_ROM_BUNDLE = `UOP_NOP;
+                          rw_control = `RW_CONTROL_WRITE;
+                          addr_bus_src = `ADDR_BUS_SRC_IDL_LOW;
+                          data_bus_src = `DATA_BUS_SRC_RMWL;
+                       end
+                       'b100: begin
+                          `CONTROL_ROM_BUNDLE = `UOP_NOP;
+                          alu_op = {3'b101, aaa[1:0]};
+                          alu_op1_src = `ALU_OP1_SRC_RMWL;
+                          rw_control = `RW_CONTROL_WRITE;
+                          addr_bus_src = `ADDR_BUS_SRC_IDL_LOW;
+                          data_bus_src = `DATA_BUS_SRC_ALU_OUT;
+                          cyc_count_control = `CYC_COUNT_RESET;
+                       end
+                     endcase
+                  end // case: {3'b0??, 3'b001}
+
+                  //////////////// rotate abs
+                  {3'b0??, 3'b011}: begin
+                     case(cyc_count)
+                       'b001: `CONTROL_ROM_BUNDLE = `UOP_LOAD_IDL_LOW_FROM_PCPTR;
+                       'b010: `CONTROL_ROM_BUNDLE = `UOP_LOAD_IDL_HI_FROM_PCPTR;
+                       'b011: begin
+                          `CONTROL_ROM_BUNDLE = `UOP_LOAD_RMWL;
+                          addr_bus_src = `ADDR_BUS_SRC_IDL;
+                       end
+                       'b100: begin
+                          // this cycle is basically a nop
+                          `CONTROL_ROM_BUNDLE = `UOP_NOP;
+                          rw_control = `RW_CONTROL_WRITE;
+                          addr_bus_src = `ADDR_BUS_SRC_IDL;
+                          data_bus_src = `DATA_BUS_SRC_RMWL;
+                       end
+                       'b101: begin
+                          `CONTROL_ROM_BUNDLE = `UOP_NOP;
+                          alu_op = {3'b101, aaa[1:0]};
+                          alu_op1_src = `ALU_OP1_SRC_RMWL;
+                          rw_control = `RW_CONTROL_WRITE;
+                          addr_bus_src = `ADDR_BUS_SRC_IDL;
+                          data_bus_src = `DATA_BUS_SRC_ALU_OUT;
+                          cyc_count_control = `CYC_COUNT_RESET;
+                       end
+                     endcase
+                  end
                 endcase // case ({aaa, bbb})
              end
 
@@ -1088,6 +1189,9 @@ module cpu_2a03(input clock,
    // input data latch
    reg [15:0] IDL;
 
+   // Read-modify-write latch
+   reg [7:0]  RMWL;
+
    // output data latch
    reg [7:0] ODL;
    assign data = (rw == `RW_WRITE) ? ODL : 8'hzz;
@@ -1099,6 +1203,7 @@ module cpu_2a03(input clock,
    wire [2:0] instr_reg_src;
    wire [1:0] idl_low_src;
    wire [1:0] idl_hi_src;
+   wire [1:0] rmwl_src;
    wire [1:0] accum_src;
    wire [1:0] sp_src;
    wire [1:0] x_src;
@@ -1117,6 +1222,7 @@ module cpu_2a03(input clock,
                   .instr_reg_src(instr_reg_src),
                   .idl_low_src(idl_low_src),
                   .idl_hi_src(idl_hi_src),
+                  .rmwl_src(rmwl_src),
                   .accum_src(accum_src),
                   .sp_src(sp_src),
                   .x_src(x_src),
@@ -1152,6 +1258,7 @@ module cpu_2a03(input clock,
           `ALU_OP1_SRC_X:     alu_op1 = X;
           `ALU_OP1_SRC_Y:     alu_op1 = Y;
           `ALU_OP1_SRC_SP:    alu_op1 = SP;
+          `ALU_OP1_SRC_RMWL:  alu_op1 = RMWL;
         endcase
 
         case(alu_op2_src)
@@ -1261,6 +1368,31 @@ module cpu_2a03(input clock,
              alu_out = alu_op1 + alu_op2;
              alu_flags_overwrite = 8'b0000_0000;
           end
+
+          `ALU_OP_ASL, `ALU_OP_ROL: begin
+             if (alu_op == `ALU_OP_ASL) begin
+                alu_out = {alu_op1[6:0], 1'b0};
+             end else begin
+                alu_out = {alu_op1[6:0], flags[0]};
+             end
+             alu_flags_overwrite = 8'b1000_0011;
+             alu_flags_out[7] = alu_out[7];
+             alu_flags_out[1] = (alu_out == 8'h00);
+             alu_flags_out[0] = alu_op1[7];
+          end
+
+          `ALU_OP_LSR, `ALU_OP_ROR: begin
+             if (alu_op == `ALU_OP_LSR) begin
+                alu_out = {1'b0, alu_op1[6:0]};
+                alu_flags_overwrite = 8'b0000_0011;
+             end else begin
+                alu_flags_overwrite = 8'b1000_0011;
+                alu_out = {flags[0], alu_op1[6:0]};
+             end
+             alu_flags_out[7] = alu_out[7];
+             alu_flags_out[1] = (alu_out == 8'h00);
+             alu_flags_out[0] = alu_op1[7];
+          end
           default: alu_out = 8'ha5;
         endcase
      end
@@ -1286,6 +1418,8 @@ module cpu_2a03(input clock,
           `DATA_BUS_SRC_X: ODL = X;
           `DATA_BUS_SRC_Y: ODL = Y;
           `DATA_BUS_SRC_FLAGS: ODL = flags;
+          `DATA_BUS_SRC_ALU_OUT: ODL = alu_out;
+          `DATA_BUS_SRC_RMWL: ODL = RMWL;
         endcase
      end
 
@@ -1372,6 +1506,12 @@ module cpu_2a03(input clock,
             `IDL_HI_SRC_IDL_HI:   IDL[15:8] <= IDL[15:8];
             `IDL_HI_SRC_DATA_BUS: IDL[15:8] <= data[7:0];
             `IDL_HI_SRC_IDL_HI_CARRY: IDL[15:8] <= IDL[15:8] + pch_carry;
+          endcase
+
+          // update read-modify-write latch
+          case(rmwl_src)
+            `RMWL_SRC_RMWL:     RMWL <= RMWL;
+            `RMWL_SRC_DATA_BUS: RMWL <= data;
           endcase
 
           // update program counter
