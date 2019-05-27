@@ -59,7 +59,7 @@ module cpu_testbench();
            $display("\n");
         end
         $display("addr $%h; data $%h; PC $%h; A $%h; X %h; Y %h; SP %h; IDL %h; cyc = %h; %b",
-                 addr, bidir, cpu.PC, cpu.A, cpu.X, cpu.Y, cpu.SP, cpu.IDL, cpu.cyc_count, cpu.flags);
+                 addr, (rw) ? (data_from_mem) : (data_from_cpu), cpu.PC, cpu.A, cpu.X, cpu.Y, cpu.SP, cpu.IDL, cpu.cyc_count, cpu.flags);
      end
 
    integer i;
@@ -83,7 +83,7 @@ module cpu_testbench();
         nreset = 1'b0; #3000;
 
         // let MCU run for a bit?
-        nreset = 1'b1; #350000;
+        nreset = 1'b1; #550000;
 
         // write to memory file
         $writememh("cpu_mem_state.hex", memory.memory);

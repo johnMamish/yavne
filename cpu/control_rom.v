@@ -57,7 +57,6 @@ module control_rom(input wire [7:0] instr,
         if (cyc_count == 'b0) begin
            `CONTROL_ROM_BUNDLE = `UOP_IFETCH;
            rw_control = `RW_CONTROL_READ;
-           $display("cyc count is 0. rw_control is %b", rw_control);
         end else begin
            // generally, we keep the instr reg src locked.
            // only in special cases with "pipelining" will we change the instr reg on a cycle that's
@@ -572,13 +571,6 @@ module control_rom(input wire [7:0] instr,
                      endcase // case (cyc_count)
                   end // case: {3'b10?, 3'h5}
 
-                  // DEC, INC zeropage
-                  {3'b11?, 3'h1}: begin
-                     case(cyc_count)
-                       'b001: `CONTROL_ROM_BUNDLE = `UOP_LOAD_IDL_LOW_FROM_PCPTR;
-                     endcase
-                  end
-
                   // {STX, LDX} abs
                   {3'b10?, 3'h3}: begin
                      case(cyc_count)
@@ -613,6 +605,7 @@ module control_rom(input wire [7:0] instr,
 
                   //////////////// rotate zpg, {inc,dec} zpg
                   {3'b0??, 3'b001}, {3'b11?, 3'b001}: begin
+                     $display("1aaz");
                      case(cyc_count)
                        'b001: `CONTROL_ROM_BUNDLE = `UOP_LOAD_IDL_LOW_FROM_PCPTR;
                        'b010: begin
@@ -644,7 +637,8 @@ module control_rom(input wire [7:0] instr,
                   end // case: {3'b0??, 3'b001}
 
                   //////////////// rotate abs, {inc,dec} abs
-                  {3'b0??, 3'b011}: begin
+                  {3'b0??, 3'b011}, {3'b11?, 3'b011}: begin
+                     $display("3aaz");
                      case(cyc_count)
                        'b001: `CONTROL_ROM_BUNDLE = `UOP_LOAD_IDL_LOW_FROM_PCPTR;
                        'b010: `CONTROL_ROM_BUNDLE = `UOP_LOAD_IDL_HI_FROM_PCPTR;
@@ -663,7 +657,7 @@ module control_rom(input wire [7:0] instr,
                           `CONTROL_ROM_BUNDLE = `UOP_NOP;
                           alu_op1_src = `ALU_OP1_SRC_RMWL;
                           rw_control = `RW_CONTROL_WRITE;
-                          addr_bus_src = `ADDR_BUS_SRC_IDL_LOW;
+                          addr_bus_src = `ADDR_BUS_SRC_IDL;
                           data_bus_src = `DATA_BUS_SRC_ALU_OUT;
                           cyc_count_control = `CYC_COUNT_RESET;
                           if (aaa[2] == 1'b0) begin
@@ -677,7 +671,8 @@ module control_rom(input wire [7:0] instr,
                   end // case: {3'b0??, 3'b011}
 
                   //////////////// rotate zpg, X
-                  {3'b0??, 3'b101}: begin
+                  {3'b0??, 3'b101}, {3'b11?, 3'b101}: begin
+                     $display("5aaz");
                      case(cyc_count)
                        'b001: `CONTROL_ROM_BUNDLE = `UOP_LOAD_IDL_LOW_FROM_PCPTR;
                        // IDL_low <= X + IDL_low
@@ -714,7 +709,8 @@ module control_rom(input wire [7:0] instr,
                   end // case: {3'b0??, 3'b011}
 
                   //////////////// rotate abs, X
-                  {3'b0??, 3'b111}: begin
+                  {3'b0??, 3'b111}, {3'b11?, 3'b111}: begin
+                     $display("7aaz");
                      case(cyc_count)
                        'b001: `CONTROL_ROM_BUNDLE = `UOP_LOAD_IDL_LOW_FROM_PCPTR;
 
@@ -748,7 +744,7 @@ module control_rom(input wire [7:0] instr,
                           `CONTROL_ROM_BUNDLE = `UOP_NOP;
                           alu_op1_src = `ALU_OP1_SRC_RMWL;
                           rw_control = `RW_CONTROL_WRITE;
-                          addr_bus_src = `ADDR_BUS_SRC_IDL_LOW;
+                          addr_bus_src = `ADDR_BUS_SRC_IDL;
                           data_bus_src = `DATA_BUS_SRC_ALU_OUT;
                           cyc_count_control = `CYC_COUNT_RESET;
                           if (aaa[2] == 1'b0) begin
@@ -761,6 +757,9 @@ module control_rom(input wire [7:0] instr,
                      endcase // case (cyc_count)
                   end
 
+                  default: begin
+                     $display("default reached :(");
+                  end
                 endcase // case ({aaa, bbb})
              end
 

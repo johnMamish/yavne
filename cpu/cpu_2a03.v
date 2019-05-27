@@ -269,7 +269,9 @@ module cpu_2a03(input clock,
              alu_flags_out[0] = alu_op1[7];
           end // case: `ALU_OP_LSR, `ALU_OP_ROR
 
-          default: alu_out = 8'h00;
+          default: begin
+             alu_out = 8'h00;
+          end
         endcase
      end
 
