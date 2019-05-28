@@ -352,6 +352,44 @@ module control_rom(input wire [7:0] instr,
                   // addr mode: x indexed, indirect
                   3'b000: begin
                      case (cyc_count)
+                       'b001: `CONTROL_ROM_BUNDLE = `UOP_LOAD_IDL_LOW_FROM_PCPTR;
+                       'b010: begin
+                          `CONTROL_ROM_BUNDLE = `UOP_ALUOP_ADD_IDL;
+                          alu_op2_src = `ALU_OP2_SRC_X;
+                       end
+                       'b011: begin
+                          `CONTROL_ROM_BUNDLE = `UOP_NOP;
+                          idl_hi_src = `IDL_HI_SRC_DATA_BUS;
+                          addr_bus_src = `ADDR_BUS_SRC_IDL_LOW;
+                          idl_low_src = `IDL_LOW_SRC_ALU_OUT;
+                          alu_op = `ALU_OP_INC_NOFLAGS;
+                          alu_op1_src = `ALU_OP1_SRC_IDL_LOW;
+                          alu_op2_src = `ALU_OP2_SRC_1;
+                       end
+                       'b100: begin
+                          `CONTROL_ROM_BUNDLE = `UOP_NOP;
+                          addr_bus_src = `ADDR_BUS_SRC_IDL_LOW;
+                          idl_hi_src = `IDL_HI_SRC_DATA_BUS;
+                          idl_low_src = `IDL_LOW_SRC_IDL_HI;
+                       end
+                       'b101: begin
+                          pc_src = `PC_SRC_PC;
+                          `IDL_CONTROL_BUNDLE = 'b0;
+                          addr_bus_src = `ADDR_BUS_SRC_IDL;
+                          alu_op2_src = `ALU_OP2_SRC_DATA_BUS;
+                          cyc_count_control = `CYC_COUNT_RESET;
+                          alu_op = {1'b0, aaa};
+
+                          // unless we are doing an STA, in which case we write the data to the bus
+                          if (aaa != 'h4) begin
+                             rw_control = `RW_CONTROL_READ;
+                             accum_src = `ACCUM_SRC_ALU;
+                          end else begin
+                             rw_control = `RW_CONTROL_WRITE;
+                             accum_src = `ACCUM_SRC_ACCUM;
+                             data_bus_src = `DATA_BUS_SRC_ACCUM;
+                          end
+                       end
                        default: begin
                           `CONTROL_ROM_BUNDLE = 'h0;
                        end

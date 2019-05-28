@@ -130,6 +130,7 @@ module cpu_2a03(input clock,
           `ALU_OP1_SRC_Y:     alu_op1 = Y;
           `ALU_OP1_SRC_SP:    alu_op1 = SP;
           `ALU_OP1_SRC_RMWL:  alu_op1 = RMWL;
+          `ALU_OP1_SRC_IDL_LOW: alu_op1 = IDL[7:0];
           default:            alu_op1 = 'h00;
         endcase
 
@@ -381,11 +382,13 @@ module cpu_2a03(input clock,
             `IDL_LOW_SRC_IDL_LOW:  IDL[7:0] <= IDL[7:0];
             `IDL_LOW_SRC_DATA_BUS: IDL[7:0] <= data_in[7:0];
             `IDL_LOW_SRC_ALU_OUT:  IDL[7:0] <= alu_out;
+            `IDL_LOW_SRC_IDL_HI:   IDL[7:0] <= IDL[15:8];
           endcase
           case(idl_hi_src)
             `IDL_HI_SRC_IDL_HI:   IDL[15:8] <= IDL[15:8];
             `IDL_HI_SRC_DATA_BUS: IDL[15:8] <= data_in[7:0];
             `IDL_HI_SRC_IDL_HI_CARRY: IDL[15:8] <= IDL[15:8] + pch_carry;
+            `IDL_HI_SRC_ALU_OUT: IDL[15:8] <= alu_out;
           endcase
 
           // update read-modify-write latch

@@ -96,11 +96,12 @@
 `define IDL_LOW_SRC_IDL_LOW  2'b0
 `define IDL_LOW_SRC_DATA_BUS 2'b1
 `define IDL_LOW_SRC_ALU_OUT  2'h2
+`define IDL_LOW_SRC_IDL_HI   2'h3
 
 `define IDL_HI_SRC_IDL_HI    2'b0
 `define IDL_HI_SRC_DATA_BUS  2'b1
 `define IDL_HI_SRC_IDL_HI_CARRY 2'h2   // gross hack to save on confusing alu muxing.
-
+`define IDL_HI_SRC_ALU_OUT 2'h3
 
 /////////////////// "read-modify-write" latch
 `define RMWL_SRC_RMWL 2'h0
@@ -136,6 +137,8 @@
 `define ALU_OP_SEC 5'h11
 `define ALU_OP_CLV 5'h12
 
+`define ALU_OP_FWD_OP2_NOFLAGS 5'h13
+
 `define ALU_OP_ASL 5'h14
 `define ALU_OP_ROL 5'h15
 `define ALU_OP_LSR 5'h16
@@ -148,6 +151,7 @@
 `define ALU_OP1_SRC_Y       3'h3
 `define ALU_OP1_SRC_SP      3'h4
 `define ALU_OP1_SRC_RMWL    3'h5
+`define ALU_OP1_SRC_IDL_LOW 3'h6
 
 /////////////////// ALU operand2 source
 `define ALU_OP2_SRC_DATA_BUS  3'h0
