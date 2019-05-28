@@ -75,17 +75,15 @@
 
 
 /////////////////// X register
-`define X_SRC_X  2'h0
-`define X_SRC_ACCUM 2'h1
-`define X_SRC_ALU_OUT 2'h2
-`define X_SRC_SP  2'h3
-
+`define X_SRC_X  3'h0
+`define X_SRC_ACCUM 3'h1
+`define X_SRC_ALU_OUT 3'h2
+`define X_SRC_SP  3'h3
 
 /////////////////// Y register
-`define Y_SRC_Y  2'h0
-`define Y_SRC_ACCUM 2'h1
-`define Y_SRC_ALU_OUT 2'h2
-
+`define Y_SRC_Y        3'h0
+`define Y_SRC_ACCUM    3'h1
+`define Y_SRC_ALU_OUT  3'h2
 
 /////////////////// flags register
 `define FLAGS_SRC_NEXT 2'h0

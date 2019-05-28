@@ -77,8 +77,8 @@ module cpu_2a03(input clock,
    wire [1:0] rmwl_src;
    wire [1:0] accum_src;
    wire [1:0] sp_src;
-   wire [1:0] x_src;
-   wire [1:0] y_src;
+   wire [2:0] x_src;
+   wire [2:0] y_src;
    wire [1:0] flags_src;
    wire [2:0] addr_bus_src;
    wire [2:0] data_bus_src;
@@ -365,8 +365,8 @@ module cpu_2a03(input clock,
           endcase
 
           case(y_src)
-            `Y_SRC_Y:     Y <= Y;
-            `Y_SRC_ACCUM: Y <= A;
+            `Y_SRC_Y:        Y <= Y;
+            `Y_SRC_ACCUM:    Y <= A;
             `Y_SRC_ALU_OUT:  Y <= alu_out;
           endcase
 

@@ -58,8 +58,8 @@ module cpu_testbench();
         if (clock && (cpu.cyc_count <= cyc_count_prev)) begin
            $display("\n");
         end
-        $display("addr $%h; data $%h; PC $%h; A $%h; X %h; Y %h; SP %h; IDL %h; cyc = %h; %b",
-                 addr, (rw) ? (data_from_mem) : (data_from_cpu), cpu.PC, cpu.A, cpu.X, cpu.Y, cpu.SP, cpu.IDL, cpu.cyc_count, cpu.flags);
+        $display("addr $%h; data $%h; rw %b; PC $%h; A $%h; X %h; Y %h; SP %h; IDL %h; cyc = %h; %b",
+                 addr, (rw) ? (data_from_mem) : (data_from_cpu), rw, cpu.PC, cpu.A, cpu.X, cpu.Y, cpu.SP, cpu.IDL, cpu.cyc_count, cpu.flags);
      end
 
    integer i;

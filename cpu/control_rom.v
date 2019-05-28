@@ -30,8 +30,8 @@ module control_rom(input wire [7:0] instr,
                    output reg [1:0] rmwl_src,
                    output reg [1:0] accum_src,
                    output reg [1:0] sp_src,
-                   output reg [1:0] x_src,
-                   output reg [1:0] y_src,
+                   output reg [2:0] x_src,
+                   output reg [2:0] y_src,
                    output reg [1:0] flags_src,
                    output reg [2:0] addr_bus_src,
                    output reg [2:0] data_bus_src,
@@ -713,6 +713,38 @@ module control_rom(input wire [7:0] instr,
                        end // case: 'b010
                      endcase
                   end // case: {3'b10?, 3'h3}
+
+                  // LDX abs, Y
+                  {3'h5, 3'h7}: begin
+                     case(cyc_count)
+                       'b001: `CONTROL_ROM_BUNDLE = `UOP_LOAD_IDL_LOW_FROM_PCPTR;
+
+                       // IDLL <= X,Y + IDLL; IDLH <= *PC
+                       'b010: begin
+                          `CONTROL_ROM_BUNDLE = `UOP_LOAD_IDL_HI_FROM_PCPTR;
+                          idl_low_src = `IDL_LOW_SRC_ALU_OUT;
+                          alu_op      = `ALU_OP_IDLL_ADD;
+                          alu_op2_src = `ALU_OP2_SRC_Y;
+                       end
+
+                       'b011: begin
+                          `CONTROL_ROM_BUNDLE = `UOP_NOP;
+                          addr_bus_src = `ADDR_BUS_SRC_IDL;
+                          idl_hi_src = `IDL_HI_SRC_IDL_HI_CARRY;
+                          cyc_count_control = `CYC_COUNT_RESET_IF_IDX_SAMEPAGE;
+                          alu_op      = `ALU_OP_FWD_OP2;
+                          x_src = `X_SRC_ALU_OUT;
+                       end
+
+                       'b100: begin
+                          `CONTROL_ROM_BUNDLE = `UOP_NOP;
+                          addr_bus_src = `ADDR_BUS_SRC_IDL;
+                          cyc_count_control = `CYC_COUNT_RESET;
+                          alu_op      = `ALU_OP_FWD_OP2;
+                          x_src = `X_SRC_ALU_OUT;
+                       end
+                     endcase
+                  end
 
                   {3'b10?, 3'b110}: begin
                      `CONTROL_ROM_BUNDLE = `UOP_NOP;

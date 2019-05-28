@@ -8,16 +8,16 @@
     sty $0200
 
     ldx #$01
-    sty $80, X
+    sty $98, X
     inx
-    sty $80, X
+    sty $98, X
     ldx #$82
     ldy $80, X                  ; y should have $a4 now
 
     lda #$fe
     sta $0200
     ldy $0200
-    sty $00, X
+    sty $10, X                  ; should be at addr $92
     dey
     tya
     clc
@@ -44,15 +44,19 @@
     sta $0201
     ldx $0201
     dex
-    stx $01, Y
+    stx $11, Y                  ; should be at addr $93
     dex
     txa
     clc
     adc #$01
     tax
 
-    ;; cpy, cpx test
-    ldx #$03
+    ;; cpy, cpx test.
+    ;; also, test ldx abs, y
+    lda #$03
+    sta $0401
+    ldy #$11
+    ldx $03f0, y
     lda #$10
 _cpx_loop:
     inx
@@ -62,15 +66,19 @@ _cpx_loop:
     bne _cpx_loop
 
     ;; cpy, cpx test
-    ldx #$03
+    ;; also, test ldx abs, y
+    lda #$03
+    sta $0401
+    ldy #$01
+    ldx $0400, y
     lda #$05
-    sta $87
+    sta $b7
     lda #$20
 _cpx_loop2:
     inx
     clc
     adc #$20
-    .byte $e4, $87              ; cpx $87
+    .byte $e4, $b7              ; cpx $b7
     bne _cpx_loop2
 
     ;; cpy, cpx test

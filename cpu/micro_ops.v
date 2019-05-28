@@ -24,9 +24,9 @@
 
 `define IDL_CONTROL_BUNDLE {idl_low_src, idl_hi_src}
 
-`define UOP_NOP {`RW_CONTROL_READ,                   \
-                 `PC_SRC_PC,           \
-                 `INSTR_REG_SRC_INSTR_REG,    \
+`define UOP_NOP {`RW_CONTROL_READ,           \
+                 `PC_SRC_PC,                 \
+                 `INSTR_REG_SRC_INSTR_REG,   \
                  `IDL_LOW_SRC_IDL_LOW,       \
                  `IDL_HI_SRC_IDL_HI,         \
                  `RMWL_SRC_RMWL,             \
