@@ -16,5 +16,19 @@
     adc #$01
     sta ($70, X)
 
+
+    ;;
+    lda #$02
+    sta $91
+    lda #$50
+    sta $90
+
+    ldy #$0a
+    lda ($90), Y
+    clc
+    adc ($90), Y
+    iny
+    sta ($90), Y
+
 _done:
     jmp _done

@@ -477,7 +477,59 @@ module control_rom(input wire [7:0] instr,
 
                   // addr mode: indirect, Y indexed
                   3'b100: begin
-                     `CONTROL_ROM_BUNDLE = 'hf00fba11;
+                     case(cyc_count)
+                       'b001: `CONTROL_ROM_BUNDLE = `UOP_LOAD_IDL_LOW_FROM_PCPTR;
+
+                       // temporarily load low byte of ptr into idlh, increment idll
+                       'b010: begin
+                          `CONTROL_ROM_BUNDLE = `UOP_NOP;
+                          addr_bus_src = `ADDR_BUS_SRC_IDL_LOW;
+                          idl_hi_src = `IDL_HI_SRC_DATA_BUS;
+                          idl_low_src = `IDL_LOW_SRC_ALU_OUT;
+                          alu_op = `ALU_OP_INC_NOFLAGS;
+                          alu_op1_src = `ALU_OP1_SRC_IDL_LOW;
+                          alu_op2_src = `ALU_OP2_SRC_1;
+                       end
+
+                       // idll <= idlh + y; idlh <= data bus
+                       'b011: begin
+                          `CONTROL_ROM_BUNDLE = `UOP_NOP;
+                          addr_bus_src = `ADDR_BUS_SRC_IDL_LOW;
+                          idl_hi_src = `IDL_HI_SRC_DATA_BUS;
+                          idl_low_src = `IDL_LOW_SRC_ALU_OUT;
+                          alu_op = `ALU_OP_IDLH_ADD;
+                          alu_op2_src = `ALU_OP2_SRC_Y;
+                       end
+
+                       'b100: begin
+                          `CONTROL_ROM_BUNDLE = `UOP_ALUOP_ACCUM_DATABUS;
+                          pc_src = `PC_SRC_PC;
+                          idl_hi_src = `IDL_HI_SRC_IDL_HI_CARRY;
+                          addr_bus_src = `ADDR_BUS_SRC_IDL;
+                          alu_op2_src = `ALU_OP2_SRC_DATA_BUS;
+                          cyc_count_control = `CYC_COUNT_RESET_IF_IDX_SAMEPAGE;
+                          alu_op = {1'b0, aaa};
+                          if (aaa == 'h4) begin
+                             rw_control = `RW_CONTROL_WRITE_WHEN_PAGE_READY;
+                             accum_src = `ACCUM_SRC_ACCUM;
+                             data_bus_src = `DATA_BUS_SRC_ACCUM;
+                          end
+                       end // case: 'b100
+
+                       'b101: begin
+                          `CONTROL_ROM_BUNDLE = `UOP_ALUOP_ACCUM_DATABUS;
+                          pc_src = `PC_SRC_PC;
+                          addr_bus_src = `ADDR_BUS_SRC_IDL;
+                          alu_op2_src = `ALU_OP2_SRC_DATA_BUS;
+                          cyc_count_control = `CYC_COUNT_RESET;
+                          alu_op = {1'b0, aaa};
+                          if (aaa == 'h4) begin
+                             rw_control = `RW_CONTROL_WRITE;
+                             accum_src = `ACCUM_SRC_ACCUM;
+                             data_bus_src = `DATA_BUS_SRC_ACCUM;
+                          end
+                       end
+                     endcase
                   end
 
                   // addr mode: zeropage, X indexed

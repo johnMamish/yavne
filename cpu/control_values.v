@@ -137,7 +137,7 @@
 `define ALU_OP_SEC 5'h11
 `define ALU_OP_CLV 5'h12
 
-`define ALU_OP_FWD_OP2_NOFLAGS 5'h13
+`define ALU_OP_IDLH_ADD 5'h13    // gross. alu_out <= IDLH + op2, carry into pch_carry.
 
 `define ALU_OP_ASL 5'h14
 `define ALU_OP_ROL 5'h15

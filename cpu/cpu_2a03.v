@@ -222,6 +222,7 @@ module cpu_2a03(input clock,
           `ALU_OP_PCL: {pch_carryw, alu_out} = PC[7:0] + IDL[7:0];
           `ALU_OP_PCH: alu_out = PC[15:8] + (pch_carry + {8{IDL[7]}});
           `ALU_OP_IDLL_ADD: {pch_carryw, alu_out} = IDL[7:0] + alu_op2;
+          `ALU_OP_IDLH_ADD: {pch_carryw, alu_out} = IDL[15:8] + alu_op2;
 
           `ALU_OP_CLC, `ALU_OP_SEC: begin
              alu_flags_out[0] = (alu_op == `ALU_OP_SEC) ? 1'b1 : 1'b0;
