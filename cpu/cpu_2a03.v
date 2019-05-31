@@ -148,7 +148,6 @@ module cpu_2a03(input clock,
         alu_out = 'h0;
         alu_flags_overwrite = 'h0;
         alu_flags_out = 'h0;
-        alu_flags_out[1] = (alu_out == 8'h00);
         alu_flags_out[7] = alu_out[7];
         pch_carryw = pch_carry;
 
@@ -274,7 +273,8 @@ module cpu_2a03(input clock,
           default: begin
              alu_out = 8'h00;
           end
-        endcase
+        endcase // case (alu_op)
+	alu_flags_out[1] = (alu_out == 8'h00);
      end
 
    //////////////// mux for address bus

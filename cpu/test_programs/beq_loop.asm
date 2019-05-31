@@ -11,11 +11,11 @@
 _start:
     lda #$07
 _loop:
+    clc
     adc #$FF
     sta $80
     beq _otherlabel
     bne _loop
-
 
 _otherlabel:
     beq _otherlabel
