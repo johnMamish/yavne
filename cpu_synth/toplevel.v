@@ -10,7 +10,7 @@ module peripherals(input clock,
                    input  [1:0]      buttons,
                    output reg [23:0] leds);
 
-   reg [7:0] ram [0:1023];
+   reg [7:0] ram [0:63];
 
    reg [7:0] rom [0:63];
    initial begin

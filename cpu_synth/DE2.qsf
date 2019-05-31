@@ -1,6 +1,4 @@
-# -------------------------------------------------------------------------- #
-#
-# Copyright (C) 1991-2013 Altera Corporation
+# Copyright (C) 1991-2010 Altera Corporation
 # Your use of Altera Corporation's design tools, logic functions 
 # and other software and tools, and its AMPP partner logic 
 # functions, and any output files from any of the foregoing 
@@ -13,39 +11,16 @@
 # programming logic devices manufactured by Altera and sold by 
 # Altera or its authorized distributors.  Please refer to the 
 # applicable agreement for further details.
-#
-# -------------------------------------------------------------------------- #
-#
-# Quartus II 64-Bit
-# Version 13.0.1 Build 232 06/12/2013 Service Pack 1 SJ Web Edition
-# Date created = 22:58:02  May 15, 2019
-#
-# -------------------------------------------------------------------------- #
-#
-# Notes:
-#
-# 1) The default values for assignments are stored in the file:
-#		ricoh_2a03_synth_assignment_defaults.qdf
-#    If this file doesn't exist, see file:
-#		assignment_defaults.qdf
-#
-# 2) Altera recommends that you do not modify this file. This
-#    file is updated automatically by the Quartus II software
-#    and any changes you make may be lost or overwritten.
-#
-# -------------------------------------------------------------------------- #
+
+# Altera recommends that you do not modify this file. This
+# file is updated automatically by the Quartus II software
+# and any changes you make may be lost or overwritten.
 
 
+set_global_assignment -name DEVICE EP2C35F672C6
+set_global_assignment -name FAMILY "Cyclone II"
 
-# Project-Wide Assignments
-# ========================
-set_global_assignment -name LAST_QUARTUS_VERSION "13.0 SP1"
-
-# Pin & Location Assignments
-# ==========================
-#set_location_assignment PIN_N25 -to SW[0]
-#set_location_assignment PIN_N26 -to SW[1]
-set_location_assignment PIN_N25 -to cpu_nrst
+set_location_assignment PIN_N25 -to SW[0]
 set_location_assignment PIN_N26 -to SW[1]
 set_location_assignment PIN_P25 -to SW[2]
 set_location_assignment PIN_AE14 -to SW[3]
@@ -471,70 +446,19 @@ set_location_assignment PIN_V23 -to GPIO_1[33]
 set_location_assignment PIN_W25 -to GPIO_1[34]
 set_location_assignment PIN_W23 -to GPIO_1[35]
 
-# Classic Timing Assignments
-# ==========================
+set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top
+
 set_global_assignment -name IGNORE_CLOCK_SETTINGS ON
 set_global_assignment -name FMAX_REQUIREMENT "50 MHz"
+set_global_assignment -name PARTITION_COLOR 2147039 -section_id Top
+set_global_assignment -name LL_ROOT_REGION ON -section_id "Root Region"
+set_global_assignment -name LL_MEMBER_STATE LOCKED -section_id "Root Region"
 
-# Analysis & Synthesis Assignments
-# ================================
-set_global_assignment -name TOP_LEVEL_ENTITY ricoh_2a03_synth
-set_global_assignment -name FAMILY "Cyclone II"
-
-# Fitter Assignments
-# ==================
-set_global_assignment -name DEVICE EP2C35F672C6
-
-# ------------------------------
-# start ENTITY(ricoh_2a03_synth)
-
-	# Pin & Location Assignments
-	# ==========================
 set_instance_assignment -name FAST_INPUT_REGISTER ON -to *
 set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to *
-
-	# Classic Timing Assignments
-	# ==========================
 set_instance_assignment -name TSU_REQUIREMENT "10 ns" -from * -to *
-
-	# Fitter Assignments
-	# ==================
 set_instance_assignment -name CURRENT_STRENGTH_NEW "MINIMUM CURRENT" -to *
 set_instance_assignment -name CURRENT_STRENGTH_NEW "MAXIMUM CURRENT" -to I2C_SCLK
 set_instance_assignment -name CURRENT_STRENGTH_NEW "MAXIMUM CURRENT" -to I2C_SDAT
 
-	# start LOGICLOCK_REGION(Root Region)
-	# -----------------------------------
-
-		# LogicLock Region Assignments
-		# ============================
-set_global_assignment -name LL_ROOT_REGION ON -section_id "Root Region"
-set_global_assignment -name LL_MEMBER_STATE LOCKED -section_id "Root Region"
-
-	# end LOGICLOCK_REGION(Root Region)
-	# ---------------------------------
-
-	# start DESIGN_PARTITION(Top)
-	# ---------------------------
-
-		# Incremental Compilation Assignments
-		# ===================================
-set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top
-set_global_assignment -name PARTITION_COLOR 2147039 -section_id Top
-
-	# end DESIGN_PARTITION(Top)
-	# -------------------------
-
-# end ENTITY(ricoh_2a03_synth)
-# ----------------------------
-set_global_assignment -name PARTITION_FITTER_PRESERVATION_LEVEL PLACEMENT_AND_ROUTING -section_id Top
-set_global_assignment -name VERILOG_FILE micro_ops.v
-set_global_assignment -name VERILOG_FILE control_values.v
-set_global_assignment -name VERILOG_FILE control_rom.v
-set_global_assignment -name VERILOG_FILE toplevel.v
-set_global_assignment -name VERILOG_FILE cpu_2a03.v
-set_global_assignment -name MIN_CORE_JUNCTION_TEMP 0
-set_global_assignment -name MAX_CORE_JUNCTION_TEMP 85
-set_global_assignment -name POWER_PRESET_COOLING_SOLUTION "23 MM HEAT SINK WITH 200 LFPM AIRFLOW"
-set_global_assignment -name POWER_BOARD_THERMAL_MODEL "NONE (CONSERVATIVE)"
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
