@@ -10,12 +10,13 @@ _loop:
     lda $80
     sta $4004
     lda $81
-    sta $4003
-    lda $82
     sta $4002
+    lda $82
+    sta $4003
 
     ;; increment $80
     lda $80
+    clc
     adc #$01
     sta $80
 
@@ -23,11 +24,13 @@ _loop:
     bne _loop
 
     lda $81
+    clc	
     adc #$01
     sta $81
     bne _loop
 
     lda $82
+    clc
     adc #$01
     sta $82
     jmp _loop

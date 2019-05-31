@@ -147,8 +147,6 @@ module cpu_2a03(input clock,
         alu_out = 'h0;
         alu_flags_overwrite = 'h0;
         alu_flags_out = 'h0;
-        alu_flags_out[1] = (alu_out == 8'h00);
-        alu_flags_out[7] = alu_out[7];
         pch_carryw = pch_carry;
 
         case(alu_op)
@@ -273,6 +271,8 @@ module cpu_2a03(input clock,
              alu_out = 8'h00;
           end
         endcase
+		  alu_flags_out[1] = (alu_out == 8'h00);
+        alu_flags_out[7] = alu_out[7];
      end
 
    //////////////// mux for address bus
@@ -442,7 +442,7 @@ module cpu_2a03(input clock,
      else
        begin
           // reset all registers
-          PC        <= 'b0;
+          PC        <= 'h1000;
           SP        <= 8'hff;
           A         <= 'b0;
           X         <= 'b0;
