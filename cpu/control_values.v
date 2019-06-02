@@ -44,13 +44,15 @@
 
 
 /////////////////// data bus
-`define DATA_BUS_SRC_NONE 3'h0
-`define DATA_BUS_SRC_ACCUM 3'h1
-`define DATA_BUS_SRC_X 3'h2
-`define DATA_BUS_SRC_Y 3'h3
-`define DATA_BUS_SRC_FLAGS 3'h4
-`define DATA_BUS_SRC_ALU_OUT 3'h5
-`define DATA_BUS_SRC_RMWL 3'h6
+`define DATA_BUS_SRC_NONE 4'h0
+`define DATA_BUS_SRC_ACCUM 4'h1
+`define DATA_BUS_SRC_X 4'h2
+`define DATA_BUS_SRC_Y 4'h3
+`define DATA_BUS_SRC_FLAGS 4'h4
+`define DATA_BUS_SRC_ALU_OUT 4'h5
+`define DATA_BUS_SRC_RMWL 4'h6
+`define DATA_BUS_SRC_PCH 4'h7
+`define DATA_BUS_SRC_PCL 4'h8
 
 /////////////////// instruction register
 `define INSTR_REG_SRC_INSTR_REG             3'h0

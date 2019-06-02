@@ -34,7 +34,7 @@ module control_rom(input wire [7:0] instr,
                    output reg [2:0] y_src,
                    output reg [1:0] flags_src,
                    output reg [2:0] addr_bus_src,
-                   output reg [2:0] data_bus_src,
+                   output reg [3:0] data_bus_src,
                    output reg [4:0] alu_op,
                    output reg [2:0] alu_op1_src,
                    output reg [2:0] alu_op2_src,
@@ -67,6 +67,76 @@ module control_rom(input wire [7:0] instr,
            case(cc)
              2'b00: begin
                 casez({aaa, bbb})
+                  // JSR
+                  {3'b001, 3'b000}: begin
+                     case(cyc_count)
+                       'b001: `CONTROL_ROM_BUNDLE = `UOP_LOAD_IDL_LOW_FROM_PCPTR;
+                       'b010: `CONTROL_ROM_BUNDLE = `UOP_NOP;
+                       'b011: begin
+                          `CONTROL_ROM_BUNDLE = `UOP_NOP;
+                          addr_bus_src = `ADDR_BUS_SRC_SP;
+                          rw_control = `RW_CONTROL_WRITE;
+                          data_bus_src = `DATA_BUS_SRC_PCH;
+
+                          alu_op = `ALU_OP_INC_NOFLAGS;
+                          alu_op1_src = `ALU_OP1_SRC_SP;
+                          alu_op2_src = `ALU_OP2_SRC_NEG1;
+                          sp_src = `SP_SRC_ALU_OUT;
+                       end // case: 'b011
+                       'b100: begin
+                          `CONTROL_ROM_BUNDLE = `UOP_NOP;
+                          addr_bus_src = `ADDR_BUS_SRC_SP;
+                          rw_control = `RW_CONTROL_WRITE;
+                          data_bus_src = `DATA_BUS_SRC_PCL;
+
+                          alu_op = `ALU_OP_INC_NOFLAGS;
+                          alu_op1_src = `ALU_OP1_SRC_SP;
+                          alu_op2_src = `ALU_OP2_SRC_NEG1;
+                          sp_src = `SP_SRC_ALU_OUT;
+                       end
+                       'b101: `CONTROL_ROM_BUNDLE = `UOP_LOAD_PC_FROM_PCPTR_IDL_LOW;
+                     endcase
+                  end
+
+                  // RTS
+                  {3'b011, 3'b000}: begin
+                     case(cyc_count)
+                       'b001: `CONTROL_ROM_BUNDLE = `UOP_NOP;
+                       // increment S
+                       'b010: begin
+                          `CONTROL_ROM_BUNDLE = `UOP_NOP;
+                          alu_op = `ALU_OP_INC_NOFLAGS;
+                          alu_op1_src = `ALU_OP1_SRC_SP;
+                          alu_op2_src = `ALU_OP2_SRC_1;
+                          sp_src = `SP_SRC_ALU_OUT;
+                       end
+                       // pull PCL from stack
+                       'b011: begin
+                          `CONTROL_ROM_BUNDLE = `UOP_NOP;
+                          addr_bus_src = `ADDR_BUS_SRC_SP;
+                          rw_control = `RW_CONTROL_READ;
+                          idl_low_src = `IDL_LOW_SRC_DATA_BUS;
+
+                          alu_op = `ALU_OP_INC_NOFLAGS;
+                          alu_op1_src = `ALU_OP1_SRC_SP;
+                          alu_op2_src = `ALU_OP2_SRC_1;
+                          sp_src = `SP_SRC_ALU_OUT;
+                       end // case: 'b011
+                       // pull PCH from stack
+                       'b100: begin
+                          `CONTROL_ROM_BUNDLE = `UOP_NOP;
+                          addr_bus_src = `ADDR_BUS_SRC_SP;
+                          rw_control = `RW_CONTROL_READ;
+                          pc_src = `PCH_SRC_DATABUS_PCL_SRC_IDLL;
+                       end
+                       'b101: begin
+                          `CONTROL_ROM_BUNDLE = `UOP_NOP;
+                          pc_src = `PC_SRC_PC_PLUS1;
+                          cyc_count_control = `CYC_COUNT_RESET;
+                       end
+                     endcase
+                  end
+
                   // PHP, PHA
                   {3'b0?0, 3'h2}: begin
                      case(cyc_count)

@@ -81,7 +81,7 @@ module cpu_2a03(input clock,
    wire [2:0] y_src;
    wire [1:0] flags_src;
    wire [2:0] addr_bus_src;
-   wire [2:0] data_bus_src;
+   wire [3:0] data_bus_src;
    wire [4:0] alu_op;
    wire [2:0] alu_op1_src;
    wire [2:0] alu_op2_src;
@@ -301,6 +301,9 @@ module cpu_2a03(input clock,
           `DATA_BUS_SRC_FLAGS: data_out = flags;
           `DATA_BUS_SRC_ALU_OUT: data_out = alu_out;
           `DATA_BUS_SRC_RMWL: data_out = RMWL;
+          `DATA_BUS_SRC_PCH: data_out = PC[15:8];
+          `DATA_BUS_SRC_PCL: data_out = PC[7:0];
+          default data_out = 'h00;
         endcase
      end
 
