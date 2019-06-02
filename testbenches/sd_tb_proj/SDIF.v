@@ -23,19 +23,14 @@ module SDIF(input wire clock,
         reg [4:0] next_pts, pts, next_state;
         reg [9:0] cv, ncv;
         reg [7:0] com, next_com;
-        reg [8:0] crc_counter;
+        reg [8:0] crc_counter, n_crc_counter;
         reg [31:0] addr, next_addr;
         wire [7:0] rbw, ib_in, crc;
         reg [7:0] rb;
 		  wire spi_iface_idle;
         wire [46:0] serialized_packet;
         assign serialized_packet = {com, addr, 7'd0};
-		  assign dleds[0] = spi_iface_idle;
-		  assign dleds[1] = spir;
-		  assign dleds[2] = ib_v;
-        assign crc =  com == (8'h40  | com_reset) ? 8'h95 :
-                      com == (8'h40  | com_vc)    ? 8'h87  :
-							 com == (8'h40  | com_init)  ? 8'hfe  : 8'h65;
+        assign crc = com != 8'h41 ? {crc_reg, 1'b1} : 8'hf9;
         reg next_ss;
         reg ib_v,next_ib_v;
         wire byte_ready;
@@ -45,13 +40,13 @@ module SDIF(input wire clock,
         assign sd_byte = valid_read ? rb : 0;
         assign idle = (state == state_idle);
           
-        assign ib_in = (cv == 10'd0) ? com :
-                       (cv == 10'd1) ? addr[31:24] :
-                       (cv == 10'd2) ? addr[23:16] :
-                       (cv == 10'd3) ? addr[15:8]  :
-                       (cv == 10'd4) ? addr[7:0]   :
-                       (cv == 10'd5) ? crc         :
-                       8'h00;
+        assign ib_in = (cv == 10'd1) ? com :
+                       (cv == 10'd2) ? addr[31:24] :
+                       (cv == 10'd3) ? addr[23:16] :
+                       (cv == 10'd4) ? addr[15:8]  :
+                       (cv == 10'd5) ? addr[7:0]   :
+                       (cv == 10'd6) ? crc         :
+                       8'hFF;
 
 
 
@@ -94,6 +89,8 @@ module SDIF(input wire clock,
          parameter state_reset7 = 5'd15;
          parameter state_reset8 = 5'd16;
 
+			
+			
          parameter com_reset = 8'd0;
          parameter com_vc      = 8'd8;
          parameter com_init  = 8'd1;
@@ -121,7 +118,7 @@ module SDIF(input wire clock,
                 state     	 <= next_state;
                 com         <= 8'h40 | next_com;
                 ib_v     	 <= next_ib_v;
-                     crc_counter <= crc_counter + 1'b1;
+                     crc_counter <= n_crc_counter;
                      crc_reg <= next_crc_reg;
                      pts            <= next_pts;
                 if (byte_ready)
@@ -135,6 +132,7 @@ module SDIF(input wire clock,
         end
 
         always @* begin
+				n_crc_counter = crc_counter + 1'b1;
             next_addr = addr;
             next_state = state;
             ncv = cv;
@@ -193,9 +191,14 @@ module SDIF(input wire clock,
                         next_pts = state_reset4;
                         next_addr = 32'h000001aa;
                         next_com = com_vc;
+<<<<<<< HEAD
                     end else if (cv > 54) begin
                          next_state = state_wait;
 						 next_pts = state_reset2;
+=======
+                    end else if (cv > 16) begin
+                         next_state = state_reset1;
+>>>>>>> vga_impl
                       end
                                 
                 end
@@ -209,10 +212,21 @@ module SDIF(input wire clock,
                 end
 
                 state_reset4: begin
+<<<<<<< HEAD
                     if ( cv > 6 && cv < 16 && rb == 8'd1) begin
 					    next_state = state_wait; 
                         next_pts = state_reset6;
                         next_addr = 0;	
+=======
+                    if ( cv > 6 && cv < 16 && rb == 8'haa) begin
+                        next_state = state_reset5;
+                        spir = 1;
+                        ncv = 0; 
+                        next_ss = 1;
+                        next_ib_v = 0; 
+                        next_addr = 0;
+								n_crc_counter = 1'b1;
+>>>>>>> vga_impl
                     end else if (cv >= 16) begin
                         next_state = state_wait;
 					    next_pts = state_reset4;
@@ -221,6 +235,7 @@ module SDIF(input wire clock,
 
 
                 state_reset6: begin
+<<<<<<< HEAD
                     if ( cv > 6 && cv < 16 && (rb == 8'd1 || rb == 8'd5)) begin
                         next_state = state_wait;
 						next_pts = state_reset8;
@@ -230,21 +245,52 @@ module SDIF(input wire clock,
                         next_state = state_wait;
 						next_com = com_55;
 						next_pts = state_reset6;
+=======
+							
+                    if ( cv > 6 && cv < 24 && (rb == 8'd1 || rb == 8'd5)) begin
+                        next_state = state_reset7;
+                        spir = 1;
+                        ncv = 0; 
+                        next_ss = 1;
+                        next_ib_v = 1;
+                        next_com = com_41;
+                        next_addr = 32'h40000000 ;
+                    end else if (cv >= 24) begin
+                        next_state = state_reset5;
+							
+
+                        next_ss = 1'b1;
+                        spir = 1'b1;
+>>>>>>> vga_impl
                     end
                 end
 
                 
                 state_reset8: begin
+<<<<<<< HEAD
                     if ( cv > 6 && cv < 16 && (rb == 8'd0 || rb == 8'd5)) begin
                         next_state = (rb == 8'd0) ? state_idle : state_wait;
+=======
+                    if ( cv > 6 && cv < 16 && (rb == 8'd0)) begin
+                        next_state = (rb == 8'd0) ? state_idle : state_reset7;
+                        spir = 1;
+>>>>>>> vga_impl
                         ncv = 0; 
                         next_com = (rb == 8'd0) ? com_41 : com_init;
                         next_addr = 0; 
+								n_crc_counter = 1'b1;
                     end else if (cv >= 16) begin
+<<<<<<< HEAD
                         next_state = state_wait;
 					    next_com = com_55;
 						next_pts = state_reset6;
                        
+=======
+								n_crc_counter = 1'b1;
+                        next_state = state_reset5;
+                        next_ss = 1'b1;
+                        spir = 1'b1;
+>>>>>>> vga_impl
                     end
                 end
 
@@ -266,18 +312,28 @@ module SDIF(input wire clock,
                 state_read0: begin
                     if ( cv > 6 && cv < 16 && rb == 0) begin
                         next_state = state_read1;
+<<<<<<< HEAD
                         ncv = 10; 
+=======
+                        ncv = 10;
+                  
+>>>>>>> vga_impl
                     end else if ( cv >= 16) begin
-                        next_state = state_fail;
+                        next_state = state_idle;
                     end
                 end
 
                 state_read1: begin
                     if( ncv == 0) 
                         ncv = 10;
+<<<<<<< HEAD
                     if ( rb == 8'hFE) begin
                         next_state = state_read2;
                         
+=======
+                    if ( rb == 8'hfe) begin
+                        next_state = state_read3;
+>>>>>>> vga_impl
                         ncv = 10;
                     end
                 end

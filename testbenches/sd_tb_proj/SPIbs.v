@@ -18,7 +18,9 @@ module SPIbs(input clock,
    
    
   
+
     assign sclk = divclk; 
+    assign sclk = divclk & ib_v;
     assign byte_ready = (sc == 4'd7) & divcnt[2] & ~(|divcnt[1:0]);
     reg [7:0] wb; 
     
