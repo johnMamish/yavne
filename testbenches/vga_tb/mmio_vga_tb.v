@@ -32,10 +32,11 @@ module  mmio_vga_tb(
             .VGA_HS(VGA_HS),
             .VGA_VS(VGA_VS),
             .VGA_BLANK(VGA_BLANK),
-			.rd_addr(LEDR[9:0])); 
+			.rd_addr(LEDR[9:0]),
+			.vga_data(LEDG[7:0])); 
 			
 	 
-    assign LEDG[1] = divclk;
+   
 	 reg [15:0] addr;
     reg [7:0] data;
 	 reg [4:0] clkdiv;
