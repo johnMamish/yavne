@@ -40,8 +40,8 @@ module  vga(
 
      
     reg [9:0] x_cnt, y_cnt;
-    assign x_addr = (x_cnt >= H_BEGIN) ? x_cnt - H_BEGIN : 10'd0;
-    assign y_addr = (y_cnt >= V_BEGIN ) ? y_cnt - V_BEGIN : 10'd0;
+    assign x_addr = (x_cnt >= H_BEGIN) ? x_cnt - H_BEGIN : 10'h3ff;
+    assign y_addr = (y_cnt >= V_BEGIN ) ? y_cnt - V_BEGIN : 10'h3ff;
     assign vga_sync_dac = 1'b0;
     assign vga_blank = vga_hs & vga_vs;
     assign vga_hs = ~((x_cnt >= H_SYNC_FP) &&  
