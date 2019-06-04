@@ -698,6 +698,7 @@ module control_rom(input wire [7:0] instr,
                      alu_op1_src = `ALU_OP1_SRC_X;
                      alu_op2_src = `ALU_OP2_SRC_NEG1;
                      x_src = `X_SRC_ALU_OUT;
+                     cyc_count_control = `CYC_COUNT_RESET;
                   end
 
                   // NOP

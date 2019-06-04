@@ -275,8 +275,6 @@ module cpu_2a03(input clock,
              alu_out = 8'h00;
           end
         endcase // case (alu_op)
-	//alu_flags_out[1] = (alu_out == 8'h00);
-	//alu_flags_out[7] = alu_out[7];
      end
 
    //////////////// mux for address bus
@@ -327,18 +325,18 @@ module cpu_2a03(input clock,
    //////////////// R/W signal
    always @ *
      begin
-        case(rw_control)
-          `RW_CONTROL_WRITE:      rw <= `RW_WRITE;
-          `RW_CONTROL_READ:       rw <= `RW_READ;
-          `RW_CONTROL_WRITE_WHEN_PAGE_READY: begin
-             if (pch_carry) begin
-                rw <= `RW_READ;
-             end else begin
-                rw <= `RW_WRITE;
-             end
-          end
-          default: rw <= `RW_READ;
-        endcase
+         case(rw_control)
+           `RW_CONTROL_WRITE:      rw <= `RW_WRITE;
+           `RW_CONTROL_READ:       rw <= `RW_READ;
+           `RW_CONTROL_WRITE_WHEN_PAGE_READY: begin
+              if (pch_carry) begin
+                 rw <= `RW_READ;
+              end else begin
+                 rw <= `RW_WRITE;
+              end
+           end
+           default: rw <= `RW_READ;
+         endcase
      end
 
    //////////////// internal logic update
