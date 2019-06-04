@@ -4,7 +4,8 @@ module  mmio_vga(
                 input clock, 
                 input [15:0] addr,
                 input [7:0] data,
-                 
+                //write is active low
+                input rw, 
 
                 output wire [9:0] VGA_R,
                 output wire [9:0] VGA_B,
@@ -14,18 +15,20 @@ module  mmio_vga(
                 output wire  VGA_HS,
                 output wire  VGA_VS,
                 output wire  VGA_SYNC,
-                output reg [9:0] rd_addr
+                output reg [9:0] rd_addr,
+                output wire [7:0] vga_data
                 );
 
-    
 
-    vga_ram screen_memory(.data(data),
-                          .rdaddress(rd_addr),
-                          .rdclock(CLOCK_50),
-                          .wraddress(mod_addr),
-                          .wrclock(clock),
-                          .wren(wren),
-                          .q(color_decider));
+    vga_ram screen_memory(.address_a(rd_addr),
+                          .address_b(mod_addr),
+                          .clock(CLOCK_50),
+                          .data_a(0),
+                          .data_b(data),
+                          .wren_a(1'b0), //vga module only reads
+                          .wren_b(wren),
+                          .q_a(color_decider),
+                          .q_b(vga_data));
 
 
 
@@ -48,12 +51,14 @@ module  mmio_vga(
 
 
     wire [7:0] color_decider;
+    reg  [7:0] vga_driver_reg;
     reg [9:0] rd_addr_next;
     reg [9:0] x_addr_prev, y_addr_prev;
     wire [9:0] mod_addr;
     wire wren;
     assign mod_addr = addr[10:0] - 10'h200;
-    assign wren = (addr[15:0] >= 16'h200) && (addr[15:0] < 16'h600);
+    
+    assign wren = (addr[15:0] >= 16'h200) && (addr[15:0] < 16'h600) && ~rw;
 
     always @* begin
         rd_addr_next = rd_addr;
@@ -65,10 +70,10 @@ module  mmio_vga(
             rd_addr_next = rd_addr - 10'd31;
         else if (y_addr_prev != y_addr && (y_addr & 10'hf) == 10'd15) 
             rd_addr_next = rd_addr + 10'd1;
-
-
     end
 
+
+ 
 
 
     
@@ -79,10 +84,12 @@ module  mmio_vga(
             rd_addr <= 0;
             x_addr_prev <= 0;
             y_addr_prev <= 0; 
+           
         end else begin
             rd_addr <= rd_addr_next;
             x_addr_prev <= x_addr;
             y_addr_prev <= y_addr; 
+            
         end
     end
   
