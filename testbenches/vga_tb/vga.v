@@ -58,15 +58,17 @@ module  vga(
             // this assumes a 50MHz clock;
             vga_clock <= ~vga_clock;
             if (vga_clock) begin 
-                if (y_cnt < V_RESET) begin
-                    if( x_cnt < H_RESET) begin
-                        x_cnt <= x_cnt + 1'b1;
-                    end else begin
-                        x_cnt <= 0;
+                if (x_cnt >= H_RESET) begin
+
+                    x_cnt <= 0;
+
+                    if( y_cnt >= V_RESET) begin
+                        y_cnt <= 0;
+                    end else begin 
                         y_cnt <= y_cnt + 1'b1;
                     end
                 end else begin
-                    y_cnt <= 0;
+                    x_cnt <= x_cnt +1'b1;
                 end
                 
                 
