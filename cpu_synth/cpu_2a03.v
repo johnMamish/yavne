@@ -171,7 +171,9 @@ module cpu_2a03(input clock,
           `ALU_OP_ADC: begin
              {c6, alu_out[6:0]} = A[6:0] + alu_op2[6:0] + flags[0];
              {alu_flags_out[0], alu_out[7]} = A[7] + alu_op2[7] + c6;
+				  alu_flags_out[7] = alu_out[7];
              alu_flags_out[6] = c6 ^ alu_flags_out[0];
+             alu_flags_out[1] = (alu_out == 8'h00);
              alu_flags_overwrite = 8'b1100_0011;
           end
 
@@ -271,8 +273,6 @@ module cpu_2a03(input clock,
              alu_out = 8'h00;
           end
         endcase
-		  alu_flags_out[1] = (alu_out == 8'h00);
-        alu_flags_out[7] = alu_out[7];
      end
 
    //////////////// mux for address bus
