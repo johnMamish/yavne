@@ -107,8 +107,6 @@ loop:
     jsr drawSnake
     lda #$20
     sta $4002
-    lda #$40
-    sta $4002
   jsr spinWheels
   jmp loop
 
@@ -296,15 +294,11 @@ drawSnake:
 
 spinWheels:
   ldx #0
-  lda #$fe
 spinloop:
-  sta $4002
   nop
   nop
   dex
   bne spinloop
-  lda #$00
-  sta $4002
   rts
 
 

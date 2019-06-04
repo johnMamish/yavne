@@ -40,7 +40,7 @@ module cpu_2a03(input clock,
                 output reg        naddr4016r,
                 output reg        naddr4017r,
                 output reg [2:0]  addr4016w,
-					 output [2:0]       cycs);
+					 output [2:0]      cycs);
 
    // ======= user facing registers =======
    // program counter
@@ -68,8 +68,9 @@ module cpu_2a03(input clock,
    // Read-modify-write latch
    reg [7:0]  RMWL;
    reg [2:0] cyc_count;
-	assign cycs = cyc_count;
 
+	assign cycs = cyc_count;
+	
    //////////////// control rom
    wire [1:0] rw_control;
    wire [3:0] pc_src;
@@ -145,7 +146,6 @@ module cpu_2a03(input clock,
           `ALU_OP2_SRC_NEG1:     alu_op2 = 8'hff;
           default:               alu_op2 = 'h00;
         endcase
-
         c6 = 'h0;
         alu_out = 'h0;
         alu_flags_overwrite = 'h0;
@@ -262,15 +262,15 @@ module cpu_2a03(input clock,
 
           `ALU_OP_LSR, `ALU_OP_ROR: begin
              if (alu_op == `ALU_OP_LSR) begin
-                alu_out = {1'b0, alu_op1[6:0]};
+                alu_out = {1'b0, alu_op1[7:1]};
                 alu_flags_overwrite = 8'b0000_0011;
              end else begin
+                alu_out = {flags[0], alu_op1[7:1]};
                 alu_flags_overwrite = 8'b1000_0011;
-                alu_out = {flags[0], alu_op1[6:0]};
              end
              alu_flags_out[7] = alu_out[7];
              alu_flags_out[1] = (alu_out == 8'h00);
-             alu_flags_out[0] = alu_op1[7];
+             alu_flags_out[0] = alu_op1[0];
           end // case: `ALU_OP_LSR, `ALU_OP_ROR
 
           default: begin
