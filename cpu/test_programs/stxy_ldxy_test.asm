@@ -1,4 +1,4 @@
-.org $0000
+.org $0600
 
     ;; test ldy and sty with a bunch of different addressing modes.
     ldy #$41
