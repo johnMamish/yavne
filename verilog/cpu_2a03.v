@@ -39,7 +39,8 @@ module cpu_2a03(input clock,
                 input             nirq,
                 output reg        naddr4016r,
                 output reg        naddr4017r,
-                output reg [2:0]  addr4016w);
+                output reg [2:0]  addr4016w,
+					 output [2:0]      cycs);
 
    // ======= user facing registers =======
    // program counter
@@ -68,6 +69,8 @@ module cpu_2a03(input clock,
    reg [7:0]  RMWL;
    reg [2:0] cyc_count;
 
+	assign cycs = cyc_count;
+	
    //////////////// control rom
    wire [1:0] rw_control;
    wire [3:0] pc_src;
