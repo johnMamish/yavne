@@ -10,9 +10,9 @@ module peripherals(input clock,
                    input  [1:0]      buttons,
                    output reg [23:0] leds);
 
-   reg [7:0] ram [0:63];
+   reg [7:0] ram [0:512];
 
-   reg [7:0] rom [0:63];
+   reg [7:0] rom [0:255];
    initial begin
       $readmemh("prog.mem", rom);
    end
@@ -20,7 +20,7 @@ module peripherals(input clock,
    always @ (posedge clock)
      begin
         // only have 1024 bytes of ram
-        if (addr[15:10] == 'h0) begin
+        if (addr < 'h600) begin
            if(rw == 1'b0) begin
               ram[addr] <= data_in;
               data_out  <= 8'b0;
@@ -30,9 +30,9 @@ module peripherals(input clock,
         end
 
         // 1024 bytes rom starting at $1000
-        else if (addr[15:10] == 'b0001_00) begin
+        else if ((addr >= 'h0600) && (addr < 'h4000)) begin
            if(rw == 1'b1) begin
-               data_out <= rom[addr[5:0]];
+               data_out <= rom[addr - 'h0600];
 		     end
         end
 
