@@ -1,6 +1,36 @@
 # !/bin/bash
 
-ca65 $1.asm  -o $1.o --cpu 6502
-ld65 -C skilldrick_link.cfg $1.o -o $1.bin -Ln $1.lbl -v
-echo "pipeing "$1".bin to ../prog.mem"
-hexdump -v -e '16/1 "%02x " "\n"'  $1.bin > ../prog.mem
+if [ "$#" -ne 2 ] || [ "$1" -eq "--help"]; then
+    echo "Illegal number of parameters"
+    echo "Usage: ./assemble.sh <prog.asm> <linker.cfg>"
+    echo "outputs the assembled program to ./prog.mem in ascii hex format, "
+    echo "which is compatiable with verilog \$readmemh()."
+    exit 1
+fi
+
+
+base="${1%.*}"
+
+echo "assembling " $1
+ca65 $1 -o $base.o --cpu 6502
+if [ $? -ne 0 ]
+then
+    echo "failed"
+    exit $?
+fi
+
+echo "linking " $base.o " with linker file " $2
+ld65 -C $2 $base.o -o $base.bin -Ln $base.lbl -v
+if [ $? -ne 0 ]
+then
+    echo "failed"
+    exit $?
+fi
+
+echo "piping "$base".bin to ./prog.mem"
+hexdump -v -e '16/1 "%02x " "\n"'  $base.bin > ./prog.mem
+if [ $? -ne 0 ]
+then
+    echo "failed"
+    exit $?
+fi

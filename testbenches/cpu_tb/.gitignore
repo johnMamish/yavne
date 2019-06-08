@@ -1,0 +1,3 @@
+# testbench executable
+cpu_tb
+cpu_mem_state.hex
