@@ -5,31 +5,49 @@
 
 ; Change direction: W A S D
 
-define appleL         $00 ; screen location of apple, low byte
-define appleH         $01 ; screen location of apple, high byte
-define snakeHeadL     $10 ; screen location of snake head, low byte
-define snakeHeadH     $11 ; screen location of snake head, high byte
-define snakeBodyStart $12 ; start of snake body byte pairs
-define snakeDirection $02 ; direction (possible values are below)
-define snakeLength    $03 ; snake length, in bytes
+    .org $0600
+
+.define appleL         $00 ; screen location of apple, low byte
+.define appleH         $01 ; screen location of apple, high byte
+.define snakeHeadL     $10 ; screen location of snake head, low byte
+.define snakeHeadH     $11 ; screen location of snake head, high byte
+.define snakeBodyStart $12 ; start of snake body byte pairs
+.define snakeDirection $02 ; direction (possible values are below)
+.define snakeLength    $03 ; snake length, in bytes
+
+.define loopCount $20
 
 ; Directions (each using a separate bit)
-define movingUp      1
-define movingRight   2
-define movingDown    4
-define movingLeft    8
+.define movingUp      1
+.define movingRight   2
+.define movingDown    4
+.define movingLeft    8
 
 ; ASCII values of keys controlling the snake
-define ASCII_w      $77
-define ASCII_a      $61
-define ASCII_s      $73
-define ASCII_d      $64
+.define ASCII_w      $77
+.define ASCII_a      $61
+.define ASCII_s      $73
+.define ASCII_d      $64
 
 ; System variables
-define sysRandom    $fe
-define sysLastKey   $ff
+.define sysRandom    $fe
+.define sysLastKey   $ff
 
 
+
+  ;; clear out the screen; set $0200 - $05ff to 0
+  ldx #$00
+  lda #$00
+_clearscreenloop:
+  sta $0200, x
+  sta $0300, x
+  sta $0400, x
+  sta $0500, x
+  inx
+  bne _clearscreenloop
+
+  lda #$00
+  sta loopCount
   jsr init
   jsr loop
 
@@ -40,27 +58,57 @@ init:
 
 
 initSnake:
-  lda #movingRight  ;start direction
-  sta snakeDirection
-
-  lda #4  ;start length (2 segments)
-  sta snakeLength
-
-  lda #$11
-  sta snakeHeadL
-
+    ;; const value
   lda #$10
   sta snakeBodyStart
 
-  lda #$0f
-  sta $14 ; body segment 1
+  lda #movingDown  ;start direction
+  sta snakeDirection
 
+  lda #20  ;start length (10 segments)
+  sta snakeLength
+
+    ;; snake head
+  lda #$11
+  sta snakeHeadL
   lda #$04
   sta snakeHeadH
-  sta $13 ; body segment 1
-  sta $15 ; body segment 2
-  rts
 
+    ;; body segment 1
+    lda #$f1
+    sta $12                     ; body segment 1
+    lda #$d1
+    sta $14                     ; body segment 2
+    lda #$b1
+    sta $16                     ; body segment 3
+    lda #$91
+    sta $18                     ; body segment 4
+    lda #$71
+    sta $1a                     ; body segment 5
+    lda #$51
+    sta $1c                     ; body segment 6
+    lda #$31
+    sta $1e                     ; body segment 7
+    lda #$11
+    sta $20                     ; body segment 8
+    lda #$f1
+    sta $22                     ; body segment 9
+    lda #$c1
+    sta $24                     ; body segment 10
+
+    lda #$03
+    sta $13                     ; body segment 1
+    sta $15                     ; body segment 2
+    sta $17                     ; body segment 3
+    sta $19                     ; body segment 4
+    sta $1b                     ; body segment 5
+    sta $1d                     ; body segment 6
+    sta $1f                     ; body segment 7
+    sta $21                     ; body segment 8
+    lda #$02
+    sta $23                     ; 9
+    sta $25                     ; 10
+    rts
 
 generateApplePosition:
   ;load a new random byte into $00
@@ -76,13 +124,31 @@ generateApplePosition:
 
   rts
 
-
 loop:
+  lda loopCount
+  clc
+  adc #$01
+  sta $4001
+  sta loopCount
+  lda snakeDirection
+  sta $4000
+  lda #$01
+  sta $4002
   jsr readKeys
+  lda #$02
+  sta $4002
   jsr checkCollision
+  lda #$04
+  sta $4002
   jsr updateSnake
+  lda #$08
+  sta $4002
   jsr drawApple
+  lda #$10
+  sta $4002
   jsr drawSnake
+  lda #$20
+  sta $4002
   jsr spinWheels
   jmp loop
 
@@ -159,16 +225,23 @@ doneCheckingAppleCollision:
 checkSnakeCollision:
   ldx #2 ;start with second segment
 snakeCollisionLoop:
+  lda #$81
+  sta $4002
   lda snakeHeadL,x
   cmp snakeHeadL
   bne continueCollisionLoop
 
 maybeCollided:
+  lda #$82
+  sta $4002
+
   lda snakeHeadH,x
   cmp snakeHeadH
   beq didCollide
 
 continueCollisionLoop:
+  lda #$83
+  sta $4002
   inx
   inx
   cpx snakeLength          ;got to last section with no collision
@@ -272,3 +345,6 @@ spinloop:
 
 
 gameOver:
+  lda #$ef
+  sta $4002
+    jmp gameOver
