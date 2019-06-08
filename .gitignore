@@ -1,3 +1,89 @@
+################################
+# vim gitignores
+################################
+# Swap
+[._]*.s[a-v][a-z]
+[._]*.sw[a-p]
+[._]s[a-rt-v][a-z]
+[._]ss[a-gi-z]
+[._]sw[a-p]
+
+# Session
+Session.vim
+Sessionx.vim
+
+# Temporary
+.netrwhist
+*~
+# Auto-generated tag files
+tags
+# Persistent undo
+[._]*.un~
+
+################################
+# emacs gitignores
+################################
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# Org-mode
+.org-id-locations
+*_archive
+
+# flymake-mode
+*_flymake.*
+
+# eshell files
+/eshell/history
+/eshell/lastdir
+
+# elpa packages
+/elpa/
+
+# reftex files
+*.rel
+
+# AUCTeX auto folder
+/auto/
+
+# cask packages
+.cask/
+dist/
+
+# Flycheck
+flycheck_*.el
+
+# server auth directory
+/server/
+
+# projectiles files
+.projectile
+
+# directory configuration
+.dir-locals.el
+
+# network security
+/network-security.data
+
+
+################################
+# ca65 binary outputs
+################################
+*.o
+*.bin
+*.lbl
+*.mem
+
+
+################################
+# Altera gitignores
+################################
 # A gitignore for Altera Quartus II that tries to ignore almost all of the
 # automatically Quartus-generated files. This primarily leaves the project,
 # settings, source, and constraint files to be added. The files ignored do not
@@ -43,7 +129,7 @@ timing
 *.sopc_builder
 *.summary
 *.tcl
-*.txt # Explicitly add any text files used
+#*.txt # Explicitly add any text files used
 *~
 *example*
 *sopc_*
