@@ -5,7 +5,6 @@
 
 ; Change direction: W A S D
 
-    .org $0600
 
 .define appleL         $00 ; screen location of apple, low byte
 .define appleH         $01 ; screen location of apple, high byte
@@ -34,8 +33,19 @@
 .define sysLastKey   $ff
 
 
+
+  ;; clear out the screen; set $0200 - $05ff to 0
+verystart:
+  ldx #$00
   lda #$00
-  sta loopCount
+_clearscreenloop:
+  sta $0200, x
+  sta $0300, x
+  sta $0400, x
+  sta $0500, x
+  inx
+  bne _clearscreenloop
+
   jsr init
   jsr loop
 
@@ -82,31 +92,13 @@ generateApplePosition:
 
   rts
 
+
 loop:
-    lda loopCount
-    clc
-    adc #$01
-    sta $4001
-    sta loopCount
-    lda snakeDirection
-    sta $4000
-    lda #$01
-    sta $4002
-    jsr readKeys
-    lda #$02
-    sta $4002
-    jsr checkCollision
-    lda #$04
-    sta $4002
-    jsr updateSnake
-    lda #$08
-    sta $4002
-    jsr drawApple
-    lda #$10
-    sta $4002
-    jsr drawSnake
-    lda #$20
-    sta $4002
+  jsr readKeys
+  jsr checkCollision
+  jsr updateSnake
+  jsr drawApple
+  jsr drawSnake
   jsr spinWheels
   jmp loop
 
@@ -183,23 +175,16 @@ doneCheckingAppleCollision:
 checkSnakeCollision:
   ldx #2 ;start with second segment
 snakeCollisionLoop:
-  lda #$81
-  sta $4002
   lda snakeHeadL,x
   cmp snakeHeadL
   bne continueCollisionLoop
 
 maybeCollided:
-  lda #$82
-  sta $4002
-
   lda snakeHeadH,x
   cmp snakeHeadH
   beq didCollide
 
 continueCollisionLoop:
-  lda #$83
-  sta $4002
   inx
   inx
   cpx snakeLength          ;got to last section with no collision
@@ -303,6 +288,16 @@ spinloop:
 
 
 gameOver:
-  lda #$ef
-  sta $4002
-    jmp gameOver
+  ldx #0
+gameOverSpinny:
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    dex
+    bne gameOverSpinny
+    jmp verystart
