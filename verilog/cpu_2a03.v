@@ -40,7 +40,7 @@ module cpu_2a03(input clock,
                 output reg        naddr4016r,
                 output reg        naddr4017r,
                 output reg [2:0]  addr4016w,
-					 output [2:0]      cycs);
+		output [2:0]      cycs);
 
    // ======= user facing registers =======
    // program counter
@@ -69,8 +69,8 @@ module cpu_2a03(input clock,
    reg [7:0]  RMWL;
    reg [2:0] cyc_count;
 
-	assign cycs = cyc_count;
-	
+   assign cycs = cyc_count;
+
    //////////////// control rom
    wire [1:0] rw_control;
    wire [3:0] pc_src;
@@ -408,6 +408,9 @@ module cpu_2a03(input clock,
             `PC_SRC_PC:           PC <= PC;
             `PC_SRC_PC_PLUS1:     PC <= PC + 1;
             `PCH_SRC_DATABUS_PCL_SRC_IDLL:     PC <= {data_in, IDL[7:0]};
+
+            `PCH_SRC_PCH_PCL_SRC_DATA_BUS: PC <= {PC[15:8], data_in};
+            `PCH_SRC_DATA_BUS_PCL_SRC_PCL: PC <= {data_in, PC[7:0]};
 
             //////// branching
             4'b1???: begin

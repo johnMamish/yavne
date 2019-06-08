@@ -224,7 +224,23 @@ module control_rom(input wire [7:0] instr,
                   {3'h3, 3'h3}: begin
                      case(cyc_count)
                        'b001: `CONTROL_ROM_BUNDLE = `UOP_LOAD_IDL_LOW_FROM_PCPTR;
-                       'b010: `CONTROL_ROM_BUNDLE = `UOP_LOAD_PC_FROM_PCPTR_IDL_LOW;
+                       'b010: `CONTROL_ROM_BUNDLE = `UOP_LOAD_IDL_HI_FROM_PCPTR;
+                       'b011: begin
+                          `CONTROL_ROM_BUNDLE = `UOP_NOP;
+                          pc_src = `PCH_SRC_PCH_PCL_SRC_DATA_BUS;
+                          addr_bus_src = `ADDR_BUS_SRC_IDL;
+                          idl_low_src = `IDL_LOW_SRC_ALU_OUT;
+
+                          alu_op1_src = `ALU_OP1_SRC_IDL_LOW;
+                          alu_op2_src = `ALU_OP2_SRC_1;
+                          alu_op = `ALU_OP_INC_NOFLAGS;
+                       end
+                       'b100: begin
+                          `CONTROL_ROM_BUNDLE = `UOP_NOP;
+                          addr_bus_src = `ADDR_BUS_SRC_IDL;
+                          pc_src = `PCH_SRC_DATA_BUS_PCL_SRC_PCL;
+                          cyc_count_control = `CYC_COUNT_RESET;
+                       end
                      endcase // case (cyc_count)
                   end // case: {3'h2, 3'h3}
 

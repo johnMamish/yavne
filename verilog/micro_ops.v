@@ -60,7 +60,7 @@
                     `ALU_OP2_SRC_DATA_BUS,      \
                     `CYC_COUNT_INCR}
 
-`define UOP_IFORWARD {`RW_CONTROL_READ,                   \
+`define UOP_IFORWARD {`RW_CONTROL_READ,           \
                       `PC_SRC_PC_PLUS1,           \
                       `INSTR_REG_SRC_DATA_BUS,    \
                       `IDL_LOW_SRC_IDL_LOW,       \
@@ -78,21 +78,21 @@
                       `ALU_OP2_SRC_DATA_BUS,      \
                       `CYC_COUNT_SET1}
 
-`define UOP_LOAD_IDL_LOW_FROM_PCPTR   {`RW_CONTROL_READ,                    \
+`define UOP_LOAD_IDL_LOW_FROM_PCPTR   {`RW_CONTROL_READ,            \
                                        `PC_SRC_PC_PLUS1,            \
                                        `INSTR_REG_SRC_INSTR_REG,    \
                                        `IDL_LOW_SRC_DATA_BUS,       \
                                        `IDL_HI_SRC_IDL_HI,          \
-                                       `RMWL_SRC_RMWL,             \
+                                       `RMWL_SRC_RMWL,              \
                                        `ACCUM_SRC_ACCUM,            \
-                                       `SP_SRC_SP,                 \
-                                       `X_SRC_X,                   \
-                                       `Y_SRC_Y,                   \
-                                       `FLAGS_SRC_NEXT,            \
+                                       `SP_SRC_SP,                  \
+                                       `X_SRC_X,                    \
+                                       `Y_SRC_Y,                    \
+                                       `FLAGS_SRC_NEXT,             \
                                        `ADDR_BUS_SRC_PC,            \
                                        `DATA_BUS_SRC_NONE,          \
                                        `ALU_OP_NOP,                 \
-                                       `ALU_OP1_SRC_A,             \
+                                       `ALU_OP1_SRC_A,              \
                                        `ALU_OP2_SRC_DATA_BUS,       \
                                        `CYC_COUNT_INCR}
 
@@ -101,16 +101,16 @@
                                         `INSTR_REG_SRC_INSTR_REG,   \
                                         `IDL_LOW_SRC_IDL_LOW,       \
                                         `IDL_HI_SRC_DATA_BUS,       \
-                                       `RMWL_SRC_RMWL,             \
+                                       `RMWL_SRC_RMWL,              \
                                         `ACCUM_SRC_ACCUM,           \
-                                       `SP_SRC_SP,                 \
-                                       `X_SRC_X,                   \
-                                       `Y_SRC_Y,                   \
-                                       `FLAGS_SRC_NEXT,            \
+                                       `SP_SRC_SP,                  \
+                                       `X_SRC_X,                    \
+                                       `Y_SRC_Y,                    \
+                                       `FLAGS_SRC_NEXT,             \
                                         `ADDR_BUS_SRC_PC,           \
                                         `DATA_BUS_SRC_NONE,         \
                                         `ALU_OP_NOP,                \
-                                       `ALU_OP1_SRC_A,             \
+                                       `ALU_OP1_SRC_A,              \
                                         `ALU_OP2_SRC_DATA_BUS,      \
                                         `CYC_COUNT_INCR}
 

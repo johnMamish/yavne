@@ -18,6 +18,9 @@
 // otherwise, propagate carry to PCH.
 `define PC_SRC_BRANCH_CYC3 4'h4
 
+`define PCH_SRC_PCH_PCL_SRC_DATA_BUS 4'h5
+`define PCH_SRC_DATA_BUS_PCL_SRC_PCL 4'h6
+
 // signal to find errors in simulation
 `define PC_SRC_LOAD_FEFE 4'h7
 

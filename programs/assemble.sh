@@ -1,6 +1,6 @@
 # !/bin/bash
 
-if [ "$#" -ne 2 ] || [ "$1" -eq "--help"]; then
+if [ "$#" -ne 2 ] || [ "$1" == "--help" ]; then
     echo "Illegal number of parameters"
     echo "Usage: ./assemble.sh <prog.asm> <linker.cfg>"
     echo "outputs the assembled program to ./prog.mem in ascii hex format, "
