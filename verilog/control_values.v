@@ -96,15 +96,20 @@
 
 
 /////////////////// internal data latch
-`define IDL_LOW_SRC_IDL_LOW  2'b0
-`define IDL_LOW_SRC_DATA_BUS 2'b1
-`define IDL_LOW_SRC_ALU_OUT  2'h2
-`define IDL_LOW_SRC_IDL_HI   2'h3
+`define IDL_LOW_SRC_IDL_LOW  3'h0
+`define IDL_LOW_SRC_DATA_BUS 3'h1
+`define IDL_LOW_SRC_ALU_OUT  3'h2
+`define IDL_LOW_SRC_IDL_HI   3'h3
+`define IDL_LOW_SRC_BRK_VEC  3'h4
+`define IDL_LOW_SRC_RST_VEC  3'h5
+`define IDL_LOW_SRC_IRQ_VEC  3'h6
+`define IDL_LOW_SRC_NMI_VEC  3'h7
 
-`define IDL_HI_SRC_IDL_HI    2'b0
-`define IDL_HI_SRC_DATA_BUS  2'b1
-`define IDL_HI_SRC_IDL_HI_CARRY 2'h2   // gross hack to save on confusing alu muxing.
-`define IDL_HI_SRC_ALU_OUT 2'h3
+`define IDL_HI_SRC_IDL_HI       3'h0
+`define IDL_HI_SRC_DATA_BUS     3'h1
+`define IDL_HI_SRC_IDL_HI_CARRY 3'h2   // gross hack to save on confusing alu muxing.
+`define IDL_HI_SRC_ALU_OUT      3'h3
+`define IDL_HI_SRC_FF           3'h4
 
 /////////////////// "read-modify-write" latch
 `define RMWL_SRC_RMWL 2'h0
@@ -186,5 +191,20 @@
 // reset cycle count if pch_carry isn't set
 `define CYC_COUNT_RESET_IF_IDX_SAMEPAGE 3'h4
 `define CYC_COUNT_SET1_IF_PC_SAMEPAGE 3'h5
+
+
+`define VECTOR_FETCH_STATE_CONTROL_CLEAR  2'h0
+`define VECTOR_FETCH_STATE_CONTROL_HOLD   2'h1
+
+`define DMA_STATE_CONTROL_CLEAR 1'h0
+`define DMA_STATE_CONTROL_HOLD  1'h1
+
+`define VECTOR_FETCH_STATE_BRK   2'h0
+`define VECTOR_FETCH_STATE_RESET 2'h1
+`define VECTOR_FETCH_STATE_IRQ   2'h2
+`define VECTOR_FETCH_STATE_NMI   2'h3
+
+`define DMA_STATE_DMA_OFF        1'b0
+`define DMA_STATE_DMA_ON         1'b1
 
 `endif

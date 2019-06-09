@@ -1,4 +1,5 @@
 
+start:
     lda #$00
     jmp (pointers + 2)
 addOne:
@@ -18,3 +19,6 @@ done:
 pointers:
     .word subOne
     .word addOne
+
+    .segment "VECTORS"
+    .word start, start, start

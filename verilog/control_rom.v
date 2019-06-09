@@ -22,11 +22,13 @@
  */
 module control_rom(input wire [7:0] instr,
                    input wire [2:0] cyc_count,
+                   input wire [1:0] vector_fetch_state,
+                   input wire       dma,
                    output reg [1:0] rw_control,
                    output reg [3:0] pc_src,
                    output reg [2:0] instr_reg_src,
-                   output reg [1:0] idl_low_src,
-                   output reg [1:0] idl_hi_src,
+                   output reg [2:0] idl_low_src,
+                   output reg [2:0] idl_hi_src,
                    output reg [1:0] rmwl_src,
                    output reg [1:0] accum_src,
                    output reg [1:0] sp_src,
@@ -38,7 +40,9 @@ module control_rom(input wire [7:0] instr,
                    output reg [4:0] alu_op,
                    output reg [2:0] alu_op1_src,
                    output reg [2:0] alu_op2_src,
-                   output reg [2:0] cyc_count_control);
+                   output reg [2:0] cyc_count_control,
+                   output reg [1:0] vector_fetch_state_control,
+                   output reg       dma_state_control);
 
    reg [2:0] aaa;
    reg [2:0] bbb;
@@ -67,6 +71,58 @@ module control_rom(input wire [7:0] instr,
            case(cc)
              2'b00: begin
                 casez({aaa, bbb})
+                  // BRK and "friends"
+                  {3'b000, 3'b000}: begin
+                     case(cyc_count)
+                       // increment PC; that's it.
+                       'b001: begin
+                          `CONTROL_ROM_BUNDLE = `UOP_NOP;
+                          pc_src = `PC_SRC_PC_PLUS1;
+                       end
+
+                       // push PCH, PCL, or P status
+                       'b010, 'b011, 'b100: begin
+                          `CONTROL_ROM_BUNDLE = `UOP_NOP;
+                          alu_op = `ALU_OP_INC_NOFLAGS;
+                          alu_op1_src = `ALU_OP1_SRC_SP;
+                          alu_op2_src = `ALU_OP2_SRC_NEG1;
+                          sp_src = `SP_SRC_ALU_OUT;
+                          addr_bus_src = `ADDR_BUS_SRC_SP;
+                          idl_low_src = {1'b1, vector_fetch_state};
+                          idl_hi_src = `IDL_HI_SRC_FF;
+                          case(cyc_count)
+                            'b010: data_bus_src = `DATA_BUS_SRC_PCH;
+                            'b011: data_bus_src = `DATA_BUS_SRC_PCL;
+                            'b100: data_bus_src = `DATA_BUS_SRC_FLAGS;
+                          endcase
+                          if ((vector_fetch_state == `VECTOR_FETCH_STATE_BRK) ||
+                              (vector_fetch_state == `VECTOR_FETCH_STATE_IRQ) ||
+                              (vector_fetch_state == `VECTOR_FETCH_STATE_NMI)) begin
+                               rw_control = `RW_CONTROL_WRITE;
+                          end
+                       end // case: 'b010, 'b011, 'b100
+
+                       'b101: begin
+                          `CONTROL_ROM_BUNDLE = `UOP_NOP;
+                          pc_src = `PCH_SRC_PCH_PCL_SRC_DATA_BUS;
+                          addr_bus_src = `ADDR_BUS_SRC_IDL;
+                          idl_low_src = `IDL_LOW_SRC_ALU_OUT;
+
+                          alu_op1_src = `ALU_OP1_SRC_IDL_LOW;
+                          alu_op2_src = `ALU_OP2_SRC_1;
+                          alu_op = `ALU_OP_INC_NOFLAGS;
+                       end
+
+                       'b110: begin
+                          `CONTROL_ROM_BUNDLE = `UOP_NOP;
+                          addr_bus_src = `ADDR_BUS_SRC_IDL;
+                          pc_src = `PCH_SRC_DATA_BUS_PCL_SRC_PCL;
+                          cyc_count_control = `CYC_COUNT_RESET;
+                          vector_fetch_state_control = `VECTOR_FETCH_STATE_CONTROL_CLEAR;
+                       end
+                     endcase
+                  end
+
                   // JSR
                   {3'b001, 3'b000}: begin
                      case(cyc_count)
@@ -220,7 +276,7 @@ module control_rom(input wire [7:0] instr,
                       endcase // case (cyc_count)
                    end // case: {3'h2, 3'h3}
 
-                  // XXX TODO JMP ind
+                  // JMP (ind)
                   {3'h3, 3'h3}: begin
                      case(cyc_count)
                        'b001: `CONTROL_ROM_BUNDLE = `UOP_LOAD_IDL_LOW_FROM_PCPTR;

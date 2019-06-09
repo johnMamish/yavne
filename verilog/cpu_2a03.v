@@ -67,7 +67,9 @@ module cpu_2a03(input clock,
 
    // Read-modify-write latch
    reg [7:0]  RMWL;
-   reg [2:0] cyc_count;
+   reg [1:0]  vector_fetch_state;
+   reg        dma_state;
+   reg [2:0]  cyc_count;
 
    assign cycs = cyc_count;
 
@@ -75,8 +77,8 @@ module cpu_2a03(input clock,
    wire [1:0] rw_control;
    wire [3:0] pc_src;
    wire [2:0] instr_reg_src;
-   wire [1:0] idl_low_src;
-   wire [1:0] idl_hi_src;
+   wire [2:0] idl_low_src;
+   wire [2:0] idl_hi_src;
    wire [1:0] rmwl_src;
    wire [1:0] accum_src;
    wire [1:0] sp_src;
@@ -89,8 +91,12 @@ module cpu_2a03(input clock,
    wire [2:0] alu_op1_src;
    wire [2:0] alu_op2_src;
    wire [2:0] cyc_count_control;
+   wire [1:0] vector_fetch_state_control;
+   wire       dma_state_control;
    control_rom cr(.instr(instr),
                   .cyc_count(cyc_count),
+                  .vector_fetch_state(vector_fetch_state),
+                  .dma(dma_state),
                   .rw_control(rw_control),
                   .pc_src(pc_src),
                   .instr_reg_src(instr_reg_src),
@@ -107,7 +113,9 @@ module cpu_2a03(input clock,
                   .alu_op(alu_op),
                   .alu_op1_src(alu_op1_src),
                   .alu_op2_src(alu_op2_src),
-                  .cyc_count_control(cyc_count_control));
+                  .cyc_count_control(cyc_count_control),
+                  .vector_fetch_state_control(vector_fetch_state_control),
+                  .dma_state_control(dma_state_control));
 
    //////////////// ALU
    // TODO: carry logic
@@ -117,7 +125,7 @@ module cpu_2a03(input clock,
    // TODO: pch_carry signals are doing double-duty for program counter and IDL. needs rename.
    reg       pch_carryw;    // wire
    reg       pch_carry;     // latch latched in always @ (posedge clk) block
-   reg [7:0] alu_out;
+   reg [7:0]  alu_out;
    reg [7:0] alu_op1;
    reg [7:0] alu_op2;
    reg [7:0] alu_flags_out;
@@ -389,12 +397,17 @@ module cpu_2a03(input clock,
             `IDL_LOW_SRC_DATA_BUS: IDL[7:0] <= data_in[7:0];
             `IDL_LOW_SRC_ALU_OUT:  IDL[7:0] <= alu_out;
             `IDL_LOW_SRC_IDL_HI:   IDL[7:0] <= IDL[15:8];
+            `IDL_LOW_SRC_BRK_VEC:  IDL[7:0] <= 8'hfe;
+            `IDL_LOW_SRC_RST_VEC:  IDL[7:0] <= 8'hfc;
+            `IDL_LOW_SRC_IRQ_VEC:  IDL[7:0] <= 8'hfe;
+            `IDL_LOW_SRC_NMI_VEC:  IDL[7:0] <= 8'hfa;
           endcase
           case(idl_hi_src)
-            `IDL_HI_SRC_IDL_HI:   IDL[15:8] <= IDL[15:8];
-            `IDL_HI_SRC_DATA_BUS: IDL[15:8] <= data_in[7:0];
+            `IDL_HI_SRC_IDL_HI:       IDL[15:8] <= IDL[15:8];
+            `IDL_HI_SRC_DATA_BUS:     IDL[15:8] <= data_in[7:0];
             `IDL_HI_SRC_IDL_HI_CARRY: IDL[15:8] <= IDL[15:8] + pch_carry;
-            `IDL_HI_SRC_ALU_OUT: IDL[15:8] <= alu_out;
+            `IDL_HI_SRC_ALU_OUT:      IDL[15:8] <= alu_out;
+            `IDL_HI_SRC_FF:           IDL[15:8] <= 8'hff;
           endcase
 
           // update read-modify-write latch
@@ -449,22 +462,35 @@ module cpu_2a03(input clock,
             end
             `FLAGS_SRC_DATA_BUS: flags <= data_in;
             default: flags <= flags;
+          endcase // case (flags_src)
+
+          case (vector_fetch_state_control)
+            `VECTOR_FETCH_STATE_CONTROL_HOLD:  vector_fetch_state <= vector_fetch_state;
+            `VECTOR_FETCH_STATE_CONTROL_CLEAR: vector_fetch_state <= `VECTOR_FETCH_STATE_BRK;
+          endcase
+
+          case (dma_state_control)
+            `DMA_STATE_CONTROL_HOLD: dma_state <= dma_state;
+            `DMA_STATE_CONTROL_CLEAR: dma_state <= `DMA_STATE_DMA_OFF;
           endcase
        end
      else
        begin
           // reset all registers
           PC        <= 'h0600;
-          SP        <= 8'hff;
+          SP        <=  8'h00;
           A         <= 'b0;
           X         <= 'b0;
           Y         <= 'b0;
 
           pch_carry <= 'b0;
-          instr     <= 'b0;
+          instr     <= 'h0;
           flags     <= 'b0;
           IDL       <= 'b0;
-          cyc_count <= 'b0;
+          cyc_count <= 'h1;
+
+          vector_fetch_state <= `VECTOR_FETCH_STATE_RESET;
+          dma_state          <= `DMA_STATE_DMA_OFF;
        end // else: !if(nreset)
      end // always @(posedge clock)
 endmodule
