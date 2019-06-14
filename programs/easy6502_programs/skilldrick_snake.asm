@@ -1,3 +1,5 @@
+    .segment "CODE"
+
 ;  ___           _        __ ___  __ ___
 ; / __|_ _  __ _| |_____ / /| __|/  \_  )
 ; \__ \ ' \/ _` | / / -_) _ \__ \ () / /
@@ -35,7 +37,7 @@
 
 
   ;; clear out the screen; set $0200 - $05ff to 0
-verystart:
+reset:
   ldx #$00
   lda #$00
 _clearscreenloop:
@@ -300,4 +302,9 @@ gameOverSpinny:
     nop
     dex
     bne gameOverSpinny
-    jmp verystart
+    jmp reset
+
+    .segment "VECTORS"
+    .word $fff0                ; nmi
+    .word reset                ; reset
+    .word $fff0                ; irq
