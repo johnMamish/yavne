@@ -65,6 +65,10 @@ module cpu_2a03(input clock,
    // input data latch
    reg [15:0] IDL;
 
+
+   reg        nmi_prev;
+   reg        nmi_edge;
+
    // Read-modify-write latch
    reg [7:0]  RMWL;
    reg [1:0]  vector_fetch_state;
@@ -349,6 +353,15 @@ module cpu_2a03(input clock,
          endcase
      end
 
+   always @ (negedge clock) begin
+      if (!nmi_prev && nmi_prev) begin
+         nmi_edge <= 1'b1;
+      end else begin
+         nmi_edge <= 1'b0;
+      end
+      nmi_prev <= nnmi;
+   end
+
    //////////////// internal logic update
    integer i = 0;
    wire    page_boundary_crossed = (pch_carry ^ IDL[7]);
@@ -464,9 +477,21 @@ module cpu_2a03(input clock,
             default: flags <= flags;
           endcase // case (flags_src)
 
+          // NB: presently, we don't support any BRK or IRQ, this logic just supports NMI and reset.
+          // The logic for "what happens if NMI occurs during IRQ entry routine" will be tricky.
           case (vector_fetch_state_control)
-            `VECTOR_FETCH_STATE_CONTROL_HOLD:  vector_fetch_state <= vector_fetch_state;
-            `VECTOR_FETCH_STATE_CONTROL_CLEAR: vector_fetch_state <= `VECTOR_FETCH_STATE_BRK;
+            // hold the current vector fetch state no matter what.
+            `VECTOR_FETCH_STATE_CONTROL_LATCH:  vector_fetch_state <= vector_fetch_state;
+
+            `VECTOR_FETCH_STATE_CONTROL_HOLD: begin
+               if (nmi_edge) begin
+                  vector_fetch_state <= `VECTOR_FETCH_STATE_NMI;
+               end else begin
+                  vector_fetch_state <= vector_fetch_state;
+               end
+            end
+
+            `VECTOR_FETCH_STATE_CONTROL_CLEAR:  vector_fetch_state <= `VECTOR_FETCH_STATE_BRK;
           endcase
 
           case (dma_state_control)
