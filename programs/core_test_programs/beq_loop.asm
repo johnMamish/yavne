@@ -1,5 +1,6 @@
-    .org $0000
+    .segment "CODE"
 
+reset:
     jmp _start
 
     .res 1
@@ -21,3 +22,8 @@ _otherlabel:
     beq _otherlabel
 _oopsie:
     jmp _oopsie
+
+    .segment "VECTORS"
+    .word $fff0                ; nmi
+    .word reset                ; reset
+    .word $fff0                ; irq

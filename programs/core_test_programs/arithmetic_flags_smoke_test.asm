@@ -1,5 +1,6 @@
-    .org $0000
+    .segment "CODE"
 
+reset:
     ;; test carry flag. 0x88 + 0x78 should set A <= 0 and set the carry flag
     lda #$88
     sta $0200
@@ -37,3 +38,11 @@
 
     lda #$57
     cmp $0300
+
+done:
+    jmp done
+
+    .segment "VECTORS"
+    .word $fff0                ; nmi
+    .word reset                ; reset
+    .word $fff0                ; irq

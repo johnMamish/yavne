@@ -1,5 +1,6 @@
-    .org $0000
+    .segment "CODE"
 
+reset:
     lda #$fc
 _loop:
     jsr inca
@@ -13,3 +14,8 @@ inca:
     clc
     adc #$01
     rts
+
+    .segment "VECTORS"
+    .word $fff0                ; nmi
+    .word reset                ; reset
+    .word $fff0                ; irq

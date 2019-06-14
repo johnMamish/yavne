@@ -1,5 +1,6 @@
+    .segment "CODE"
 
-start:
+reset:
     lda #$00
     jmp (pointers + 2)
 addOne:
@@ -21,4 +22,6 @@ pointers:
     .word addOne
 
     .segment "VECTORS"
-    .word start, start, start
+    .word $fff0                ; nmi
+    .word reset                ; reset
+    .word $fff0                ; irq

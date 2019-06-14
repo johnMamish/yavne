@@ -1,5 +1,6 @@
-.org $0600
+    .segment "CODE"
 
+start:
     ;; test ldy and sty with a bunch of different addressing modes.
     ldy #$41
     .byte $a4, $00              ;ldy $00
@@ -96,3 +97,8 @@ _cpx_loop3:
     ;; at end of loop, A should be $30
 _done:
     jmp _done
+
+    .segment "VECTORS"
+    .word $fff0                ; nmi
+    .word start                ; reset
+    .word $fff0                ; irq

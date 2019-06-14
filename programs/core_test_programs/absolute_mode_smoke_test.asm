@@ -1,6 +1,7 @@
-    ;; smoke test for alu absolute, X indexed instructons
-    .org $0000
+    .segment "CODE"
 
+start:
+    ;; smoke test for alu absolute, X indexed instructons
     lda #$40
     tax
 
@@ -39,3 +40,8 @@
 
 _done:
     jmp _done
+
+    .segment "VECTORS"
+    .word $fff0                ; nmi
+    .word start                ; reset
+    .word $fff0                ; irq

@@ -1,5 +1,6 @@
-    .org $0000
+    .segment "CODE"
 
+reset:
     ;; we will put the number $a5 at address $025a
     lda #$02
     sta $81
@@ -32,3 +33,8 @@
 
 _done:
     jmp _done
+
+    .segment "VECTORS"
+    .word $fff0                ; nmi
+    .word reset                ; reset
+    .word $fff0                ; irq

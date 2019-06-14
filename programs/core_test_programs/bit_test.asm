@@ -1,5 +1,6 @@
-    .org $0000
+    .segment "CODE"
 
+reset:
     lda #$73
     .byte $85, $40              ;sta $40
     sta $0600
@@ -16,3 +17,8 @@
 
 _done:
     jmp _done
+
+    .segment "VECTORS"
+    .word $fff0                ; nmi
+    .word reset                ; reset
+    .word $fff0                ; irq

@@ -1,5 +1,6 @@
-    .org $0000
+    .segment "CODE"
 
+reset:
     ;; start index at 0.
     lda #$00
     tax
@@ -32,3 +33,8 @@ _result:
 
 _list:
     .byte $1, $2, $3, $4, $5, $6, $7, $8, $9, $a
+
+    .segment "VECTORS"
+    .word $fff0                ; nmi
+    .word reset                ; reset
+    .word $fff0                ; irq

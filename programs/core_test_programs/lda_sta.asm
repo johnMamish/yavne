@@ -1,5 +1,6 @@
-.org $0000
+    .segment "CODE"
 
+start:
     lda #$01
     sta $0200
     lda #$05
@@ -15,3 +16,8 @@
 
 _done:
     jmp _done
+
+.segment "VECTORS"
+    .word $fff0                ; nmi
+    .word start                ; reset
+    .word $fff0                ; irq

@@ -1,5 +1,6 @@
-    .org $0000
+    .segment "CODE"
 
+reset:
     lda #$f2
     adc #$80
     php
@@ -21,3 +22,8 @@
 
 _done:
     jmp _done
+
+    .segment "VECTORS"
+    .word $fff0                ; nmi
+    .word reset                ; reset
+    .word $fff0                ; irq

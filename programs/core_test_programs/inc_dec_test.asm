@@ -1,5 +1,6 @@
-    .org $0000
+    .segment "CODE"
 
+reset:
     ;; start at $fd, decrement, and increment until one after 0.
     lda #$fd
     sta $0080
@@ -40,3 +41,8 @@
 
 _done:
     jmp _done
+
+    .segment "VECTORS"
+    .word $fff0                ; nmi
+    .word reset                ; reset
+    .word $fff0                ; irq

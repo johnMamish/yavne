@@ -1,3 +1,5 @@
+    .segment "CODE"
+
 ;  ___           _        __ ___  __ ___
 ; / __|_ _  __ _| |_____ / /| __|/  \_  )
 ; \__ \ ' \/ _` | / / -_) _ \__ \ () / /
@@ -29,7 +31,7 @@
 .define sysRandom    #$00
 .define sysLastKey   #$00
 
-
+reset:
   jsr init
   jsr loop
 
@@ -270,6 +272,10 @@ spinloop:
   bne spinloop
   rts
 
-
 gameOver:
     jmp gameOver
+
+    .segment "VECTORS"
+    .word $fff0                ; nmi
+    .word reset                ; reset
+    .word $fff0                ; irq
