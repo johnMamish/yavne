@@ -16,8 +16,10 @@ module  se(
                 output [7:0] OAMADDR,
                 output overflow_out,
                 output se2vram_v,
-                output [13:0] se2vram_addr
-
+                output [13:0] se2vram_addr, 
+                output se2ppu_v,
+                output se2ppu_p, //this is priority
+                output [3:0] se2ppu_idx
                 );
 
 
@@ -44,7 +46,7 @@ module  se(
     reg [7:0] sprPrio, sprPrio_n;
     reg [7:0] activated, activated_n;
     reg [7:0] [7:0] counters, counters_n;
-    reg [7:0] [7:0] [1:0] attrb, attrb_n;
+    reg [7:0] [1:0] attrb, attrb_n;
     reg [7:0] [7:0] lBMr, lBMr_n;
     reg [7:0] [7:0] hBMr, hBMr_n;
     assign overflow_out = overflow | overflow_n; 
@@ -85,13 +87,39 @@ module  se(
         attrb_n = attrb;
         sprv_n = sprv;
         if (cycleNum < 'd257) begin
-            for (i = 0; i < 8; i = i + 1) begin 
-                if(counters[i] < 1'd1) begin
-                    activated_n[i] = 1'b1;
+            if (cycleNum == 'd0) begin
+                for (i = 0; i < 8; i = i + 1) begin 
+                    if(counters[i] == 0) begin
+                        activated_n[i] = 1'b1;
+                    end
+                end
+            end else begin
+                for (i = 0; i < 8; i = i + 1) begin 
+                    if(sprv[i] && counters[i] == 1) begin
+                        activated_n[i] = 1'b1;
+                    end
 
+                    if (sprv[i] && activated[i]) begin
+                        counters_n[i] = counters[i] + 1'b1;
+                        if (counters[i] == 'd7) begin
+                            sprv_n[i] = 0;
+                            activated_n[i] = 0;
+                        end
+                    end else if (sprv[i]) begin
+                        counters_n[i] = counters[i] - 1'b1;
+                    end
+
+                end
 
             end
 
+            for (i = 7; i >= 0; i = i - 1) begin
+                if(sprv[i] && activated[i]) begin
+                    se2ppu_v = 1'b1;
+                    se2ppu_p = sprPrio[i];
+                    se2ppu_idx = {attrb[i], hBMr[i][counters[i][2:0]], lBMr[i][counters[i][2:0]]};
+                end
+            end
         end
     end
 
@@ -187,10 +215,9 @@ module  se(
                     state_n = state_load_soam;
                     counters_n[sOAM_idx[4:2]] = x;
                     sprv_n[sOAM_idx[4:2]] = sValid[sOAM_idx[4:2]];
-                    sprPrio_n[sOAM_idx[4:2]] = atr[5];
-                    for (i = 0; i < 8; i = i +1) begin
-                        attrb_n[sOAM_idx[4:2]][i] = atr[1:0];  
-                    end
+                    sprPrio_n[sOAM_idx[4:2]] = atr[5]; 
+                    attrb_n[sOAM_idx[4:2]] = atr[1:0];  
+                 
                 end
             end
 
@@ -245,6 +272,7 @@ module  se(
             activated <= activated_n;
             counters <= counters_n;
             sprPrio <= sprPrio_n;
+            sprv <= sprv_n; 
         end 
     end    
 
