@@ -12,7 +12,9 @@ module  PPU(
                 output [7:0]  ppu2cpu_data,
                 output [13:0] ppu2vram_addr,
                 output [7:0] ppu2vram_data,
-                output [4:0] pal_index
+                output [4:0] pal_index,
+                output [8:0] xIdx,
+                output [8:0] yIdx
                 );
 
     
@@ -22,6 +24,10 @@ module  PPU(
     wire [15:0] sPT_base, bPT_base;
     wire [4:0] cy; //the "coarse" y
     wire [13:0] ptAddr; 
+
+    assign xIdx = cycleNum;
+    assign yIdx = renderLine;
+
 
     wire [4:0] bgPalIdx;
     assign bgPalIdx = {1'b0, attrSR[1][x], attrSR[0][x], bgSR[1][{1'b0,x}], bgSR[0][{1'b0, x}]}; 
@@ -54,7 +60,8 @@ module  PPU(
     reg [8:0] renderLine, cycleNum;
     wire [2:0] fineY; 
     assign fineY = vram[14:12];
-    //TODO: needs more here, only true within certain range
+
+
     assign hInc = (ctr == 3'd7) && ((cycleNum > 'd0 && cycleNum < 'd257) || (cycleNum > 'd320 && cycleNum < 'd337)) ;
     
 
