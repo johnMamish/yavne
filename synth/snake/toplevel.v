@@ -73,7 +73,7 @@ module peripherals(input             CLOCK_50,
 	    pressedkey <= pressedkey;
 	 end
       end else begin
-	 pressedkey <= 8'h73;
+         pressedkey <= 8'h73;
       end
       keys_prev <= keys;
    end
@@ -201,26 +201,21 @@ module ricoh_2a03_synth(input           CLOCK_50,
       endcase
    end
 
-   reg             CLOCK_50_div;
-   reg             CLOCK_visible;
-   reg [31:0]      CLOCK_50_div_ctr;
-   reg [31:0]      CLOCK_visible_ctr;
-   always @ (posedge CLOCK_50) begin
+   wire pll_out;
+   sys_pll sys_pll(CLOCK_50, pll_out);
+   
+   reg             pll_div;
+   reg [31:0]      pll_div_ctr;
+   always @ (posedge pll_out) begin
       if (SW[1]) begin
-	 CLOCK_50_div_ctr <= CLOCK_50_div_ctr;
+         pll_div_ctr <= pll_div_ctr;
       end else begin
-         CLOCK_50_div_ctr <= CLOCK_50_div_ctr + 'h1;
+         pll_div_ctr <= pll_div_ctr + 'h1;
       end
 
-      if (CLOCK_50_div_ctr > clk_div) begin
-         CLOCK_50_div_ctr <= 'h0;
-         CLOCK_50_div = ~CLOCK_50_div;
-      end
-
-      CLOCK_visible_ctr <= CLOCK_visible_ctr + 'h1;
-      if (CLOCK_visible_ctr > 'd10000000) begin
-         CLOCK_visible_ctr <= 'h0;
-         CLOCK_visible = ~CLOCK_visible;
+      if (pll_div_ctr > clk_div) begin
+         pll_div_ctr <= 'h0;
+         pll_div = ~pll_div;
       end
    end
 
@@ -231,7 +226,6 @@ module ricoh_2a03_synth(input           CLOCK_50,
    wire [7:0]  data_from_mem;
    wire        rw;
 
-   assign LEDR[16] = CLOCK_visible;
    assign LEDR[17] = rw;
 
    hexled pc_0(addr[3:0], HEX0);
@@ -244,13 +238,13 @@ module ricoh_2a03_synth(input           CLOCK_50,
    hexled dat0((rw) ? data_from_mem[3:0] : data_from_cpu[3:0], HEX4);
    hexled dat1((rw) ? data_from_mem[7:4] : data_from_cpu[7:4], HEX5);
 
-   cpu_2a03 cpu(.clock(CLOCK_50_div),
+   cpu_2a03 cpu(.clock(pll_div),
                 .nreset(cpu_nrst),
                 .addr(addr),
                 .data_out(data_from_cpu),
                 .data_in(data_from_mem),
                 .rw(rw),
-                .nnmi(1'b1),
+                .nnmi(SW[7]),
                 .nirq(1'b1),
                 .naddr4016r(),
                 .naddr4017r(),
@@ -259,7 +253,7 @@ module ricoh_2a03_synth(input           CLOCK_50,
 
    peripherals p(.CLOCK_50(CLOCK_50),
                  .nreset(cpu_nrst),
-                 .clock(CLOCK_50_div),
+                 .clock(pll_div),
                  .addr(addr),
                  .rw(rw),
                  .data_in(data_from_cpu),
