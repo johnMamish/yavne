@@ -65,6 +65,8 @@
 // if PCL + 1 has no carry, loads instr reg with data bus.
 `define INSTR_REG_SRC_DATA_BUS_IF_SAMEPAGE  3'h3
 
+// force the instr reg to 0.
+`define INSTR_REG_SRC_ZERO                  3'h4
 
 /////////////////// A register
 `define ACCUM_SRC_ACCUM 2'h0

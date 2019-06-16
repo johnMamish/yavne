@@ -7,6 +7,8 @@
 
 ; Change direction: W A S D
 
+    ;;  This version includes an NMI handler that increments the data at $4000
+
 
 .define appleL         $00 ; screen location of apple, low byte
 .define appleH         $01 ; screen location of apple, high byte
@@ -16,7 +18,7 @@
 .define snakeDirection $02 ; direction (possible values are below)
 .define snakeLength    $03 ; snake length, in bytes
 
-.define loopCount $20
+.define nmicount       $08      ; count number of nmis so far
 
 ; Directions (each using a separate bit)
 .define movingUp      1
@@ -304,7 +306,13 @@ gameOverSpinny:
     bne gameOverSpinny
     jmp reset
 
+nmi:
+    inc nmicount
+    lda nmicount
+    sta $4000
+    rti
+
     .segment "VECTORS"
-    .word reset                ; nmi
+    .word nmi                  ; nmi
     .word reset                ; reset
     .word $fff0                ; irq

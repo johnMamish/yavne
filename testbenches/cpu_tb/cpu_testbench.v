@@ -28,6 +28,7 @@ module cpu_testbench();
    wire [7:0]  data_from_cpu;
    wire [7:0]  data_from_mem;
    wire rw;
+   reg  nnmi;
 
    cpu_2a03 cpu(.clock(clock),
                 .nreset(nreset),
@@ -35,7 +36,7 @@ module cpu_testbench();
                 .data_in(data_from_mem),
                 .data_out(data_from_cpu),
                 .rw(rw),
-                .nnmi(1'b1),
+                .nnmi(nnmi),
                 .nirq(1'b1),
                 .naddr4016r(),
                 .naddr4017r(),
@@ -49,17 +50,24 @@ module cpu_testbench();
         cyc_count_prev <= cpu.cyc_count;
    end
 
+   integer clk_count;
    always
      begin
         #490;
         clock = ~clock;
         #10;
+        clk_count = clk_count + 1;
+        if (((clk_count % 300) > 100) && ((clk_count % 300) < 120)) begin
+           nnmi = 'b0;
+        end else begin
+           nnmi = 'b1;
+        end
 
         if (clock && (cpu.cyc_count <= cyc_count_prev)) begin
            $display("\n");
         end
-        $display("addr $%h; data $%h; rw %b; PC $%h; A $%h; X %h; Y %h; SP %h; IDL %h; cyc = %h; %b",
-                 addr, (rw) ? (data_from_mem) : (data_from_cpu), rw, cpu.PC, cpu.A, cpu.X, cpu.Y, cpu.SP, cpu.IDL, cpu.cyc_count, cpu.flags);
+        $display("addr $%h; data $%h; rw %b; PC $%h; A $%h; X %h; Y %h; SP %h; IDL %h; cyc = %h; nnmi = %b; %b",
+                 addr, (rw) ? (data_from_mem) : (data_from_cpu), rw, cpu.PC, cpu.A, cpu.X, cpu.Y, cpu.SP, cpu.IDL, cpu.cyc_count, nnmi, cpu.flags);
      end
 
    integer i;
@@ -81,6 +89,7 @@ module cpu_testbench();
 
         // strobe reset for 3 microseconds
         nreset = 1'b0; #3000;
+        clk_count = 0;
 
         // let MCU run for a bit?
         nreset = 1'b1; #550000;

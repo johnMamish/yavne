@@ -57,10 +57,15 @@ module control_rom(input wire [7:0] instr,
         data_bus_src = `DATA_BUS_SRC_NONE;
         `CONTROL_ROM_BUNDLE = `UOP_NOP;
 
-        // the first part of the instruction is always instruction fetch
+        // The first part of the instruction is always instruction fetch.
+        // If an interrupt should be serviced, then we put instr <= 0 and don't advance the PC
         if (cyc_count == 'b0) begin
-           `CONTROL_ROM_BUNDLE = `UOP_IFETCH;
-           rw_control = `RW_CONTROL_READ;
+           if (vector_fetch_state == `VECTOR_FETCH_STATE_BRK) begin
+              `CONTROL_ROM_BUNDLE = `UOP_IFETCH;
+           end else begin
+              `CONTROL_ROM_BUNDLE = `UOP_NOP;
+              instr_reg_src = `INSTR_REG_SRC_ZERO;
+           end
         end else begin
            // generally, we keep the instr reg src locked.
            // only in special cases with "pipelining" will we change the instr reg on a cycle that's
@@ -77,7 +82,10 @@ module control_rom(input wire [7:0] instr,
                        // increment PC; that's it.
                        'b001: begin
                           `CONTROL_ROM_BUNDLE = `UOP_NOP;
-                          pc_src = `PC_SRC_PC_PLUS1;
+                          if (vector_fetch_state == `VECTOR_FETCH_STATE_BRK) begin
+                             pc_src = `PC_SRC_PC_PLUS1;
+                          end
+                          vector_fetch_state_control = `VECTOR_FETCH_STATE_CONTROL_LATCH;
                        end
 
                        // push PCH, PCL, or P status
@@ -100,6 +108,7 @@ module control_rom(input wire [7:0] instr,
                               (vector_fetch_state == `VECTOR_FETCH_STATE_NMI)) begin
                                rw_control = `RW_CONTROL_WRITE;
                           end
+                          vector_fetch_state_control = `VECTOR_FETCH_STATE_CONTROL_LATCH;
                        end // case: 'b010, 'b011, 'b100
 
                        'b101: begin
@@ -111,6 +120,7 @@ module control_rom(input wire [7:0] instr,
                           alu_op1_src = `ALU_OP1_SRC_IDL_LOW;
                           alu_op2_src = `ALU_OP2_SRC_1;
                           alu_op = `ALU_OP_INC_NOFLAGS;
+                          vector_fetch_state_control = `VECTOR_FETCH_STATE_CONTROL_LATCH;
                        end
 
                        'b110: begin
@@ -154,10 +164,20 @@ module control_rom(input wire [7:0] instr,
                      endcase
                   end
 
-                  // RTS
-                  {3'b011, 3'b000}: begin
+                  // RTS, RTI
+                  {3'b011, 3'b000}, {3'b010, 3'b000} : begin
                      case(cyc_count)
-                       'b001: `CONTROL_ROM_BUNDLE = `UOP_NOP;
+                       // if we are doing RTI, we need to fetch status flags as well.
+                       'b001: begin
+                          `CONTROL_ROM_BUNDLE = `UOP_NOP;
+                          if (aaa == 3'b010) begin
+                             alu_op = `ALU_OP_INC_NOFLAGS;
+                             alu_op1_src = `ALU_OP1_SRC_SP;
+                             alu_op2_src = `ALU_OP2_SRC_1;
+                             sp_src = `SP_SRC_ALU_OUT;
+                          end
+                       end
+
                        // increment S
                        'b010: begin
                           `CONTROL_ROM_BUNDLE = `UOP_NOP;
@@ -165,6 +185,10 @@ module control_rom(input wire [7:0] instr,
                           alu_op1_src = `ALU_OP1_SRC_SP;
                           alu_op2_src = `ALU_OP2_SRC_1;
                           sp_src = `SP_SRC_ALU_OUT;
+                          if (aaa == 3'b010) begin
+                             addr_bus_src = `ADDR_BUS_SRC_SP;
+                             flags_src = `FLAGS_SRC_DATA_BUS;
+                          end
                        end
                        // pull PCL from stack
                        'b011: begin
@@ -187,7 +211,10 @@ module control_rom(input wire [7:0] instr,
                        end
                        'b101: begin
                           `CONTROL_ROM_BUNDLE = `UOP_NOP;
-                          pc_src = `PC_SRC_PC_PLUS1;
+                          // rti doesn't increment PC
+                          if (aaa == 3'b011) begin
+                             pc_src = `PC_SRC_PC_PLUS1;
+                          end
                           cyc_count_control = `CYC_COUNT_RESET;
                        end
                      endcase

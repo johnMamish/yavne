@@ -354,12 +354,16 @@ module cpu_2a03(input clock,
      end
 
    always @ (negedge clock) begin
-      if (!nmi_prev && nmi_prev) begin
-         nmi_edge <= 1'b1;
+      if (nreset) begin
+         if (nmi_prev && !nnmi) begin
+            nmi_edge <= 1'b1;
+         end else begin
+            nmi_edge <= 1'b0;
+         end
+         nmi_prev <= nnmi;
       end else begin
-         nmi_edge <= 1'b0;
+         nmi_prev <= 'b1;
       end
-      nmi_prev <= nnmi;
    end
 
    //////////////// internal logic update
@@ -402,6 +406,7 @@ module cpu_2a03(input clock,
             `INSTR_REG_SRC_DATA_BUS:  instr <= data_in;
             `INSTR_REG_SRC_DATA_BUS_IF_NOBRANCH: instr <= (do_branch) ? instr : data_in;
             `INSTR_REG_SRC_DATA_BUS_IF_SAMEPAGE: instr <= (page_boundary_crossed) ? instr : data_in;
+            `INSTR_REG_SRC_ZERO: instr <= 'h0;
           endcase
 
           // update internal data latch
@@ -480,9 +485,11 @@ module cpu_2a03(input clock,
           // NB: presently, we don't support any BRK or IRQ, this logic just supports NMI and reset.
           // The logic for "what happens if NMI occurs during IRQ entry routine" will be tricky.
           case (vector_fetch_state_control)
-            // hold the current vector fetch state no matter what.
+            // hold the current vector fetch state no matter what. process RESET without getting
+            // clobbered by NMI...?
             `VECTOR_FETCH_STATE_CONTROL_LATCH:  vector_fetch_state <= vector_fetch_state;
 
+            // update the vector fetch state to be the next thing that "makes sense"
             `VECTOR_FETCH_STATE_CONTROL_HOLD: begin
                if (nmi_edge) begin
                   vector_fetch_state <= `VECTOR_FETCH_STATE_NMI;
@@ -491,7 +498,14 @@ module cpu_2a03(input clock,
                end
             end
 
-            `VECTOR_FETCH_STATE_CONTROL_CLEAR:  vector_fetch_state <= `VECTOR_FETCH_STATE_BRK;
+            // unconditionally clear the vector fetch state.
+            `VECTOR_FETCH_STATE_CONTROL_CLEAR:  begin
+               if (nmi_edge) begin
+                  vector_fetch_state <= `VECTOR_FETCH_STATE_NMI;
+               end else begin
+                  vector_fetch_state <= `VECTOR_FETCH_STATE_BRK;
+               end
+            end
           endcase
 
           case (dma_state_control)
@@ -502,7 +516,7 @@ module cpu_2a03(input clock,
      else
        begin
           // reset all registers
-          PC        <= 'h0600;
+          PC        <= 'h0000;
           SP        <=  8'h00;
           A         <= 'b0;
           X         <= 'b0;
