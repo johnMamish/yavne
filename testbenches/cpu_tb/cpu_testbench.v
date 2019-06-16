@@ -28,6 +28,7 @@ module cpu_testbench();
    wire [7:0]  data_from_cpu;
    wire [7:0]  data_from_mem;
    wire rw;
+   wire [2:0] controller_strobe;
    reg  nnmi;
 
    cpu_2a03 cpu(.clock(clock),
@@ -40,7 +41,7 @@ module cpu_testbench();
                 .nirq(1'b1),
                 .naddr4016r(),
                 .naddr4017r(),
-                .addr4016w());
+                .addr4016w(controller_strobe));
 
    mem memory(.clock(~clock), .addr(addr), .rw(rw), .data_in(data_from_cpu), .data_out(data_from_mem));
 
@@ -66,8 +67,8 @@ module cpu_testbench();
         if (clock && (cpu.cyc_count <= cyc_count_prev)) begin
            $display("\n");
         end
-        $display("addr $%h; data $%h; rw %b; PC $%h; A $%h; X %h; Y %h; SP %h; IDL %h; cyc = %h; nnmi = %b; %b",
-                 addr, (rw) ? (data_from_mem) : (data_from_cpu), rw, cpu.PC, cpu.A, cpu.X, cpu.Y, cpu.SP, cpu.IDL, cpu.cyc_count, nnmi, cpu.flags);
+        $display("addr $%h; data $%h; rw %b; PC $%h; A $%h; X %h; Y %h; SP %h; IDL %h; cyc = %h; nnmi = %b; 4016w = %b; %b",
+                 addr, (rw) ? (data_from_mem) : (data_from_cpu), rw, cpu.PC, cpu.A, cpu.X, cpu.Y, cpu.SP, cpu.IDL, cpu.cyc_count, nnmi, controller_strobe, cpu.flags);
      end
 
    integer i;

@@ -37,8 +37,8 @@ module cpu_2a03(input clock,
                 output reg        rw,
                 input             nnmi,
                 input             nirq,
-                output reg        naddr4016r,
-                output reg        naddr4017r,
+                output wire       naddr4016r,
+                output wire       naddr4017r,
                 output reg [2:0]  addr4016w,
 		output [2:0]      cycs);
 
@@ -120,6 +120,23 @@ module cpu_2a03(input clock,
                   .cyc_count_control(cyc_count_control),
                   .vector_fetch_state_control(vector_fetch_state_control),
                   .dma_state_control(dma_state_control));
+
+
+   //////////////// controller reading signals
+   assign naddr4016r = !((rw == `RW_READ) && (addr == 16'h4016) && (!clock));
+   assign naddr4017r = !((rw == `RW_READ) && (addr == 16'h4017) && (!clock));
+
+   always @ (negedge clock) begin
+      if (nreset) begin
+         if ((rw == `RW_WRITE) && (addr == 16'h4016)) begin
+            addr4016w <= data_out;
+         end else begin
+            addr4016w <= addr4016w;
+         end
+      end else begin
+         addr4016w <= 'h0;
+      end
+   end
 
    //////////////// ALU
    // TODO: carry logic
