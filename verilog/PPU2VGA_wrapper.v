@@ -72,7 +72,7 @@ module  PPU2VGA_wrapper(
 
 
     PALROM tl(
-            .pal_in({1'b0 , read_val}),
+            .pal_in(read_val),
             .red(vga_r),
             .green(vga_g),
             .blue(vga_b));
