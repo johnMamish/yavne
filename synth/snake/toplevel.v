@@ -22,7 +22,9 @@ module peripherals(input             CLOCK_50,
                    output wire       VGA_SYNC,
 
                    input [3:0]       keys,
-                   output reg [23:0] leds);
+                   output reg [23:0] leds,
+                   
+                   input  wire       controller1_data);
 
    reg [7:0] ram [0:511];
    initial begin
@@ -120,7 +122,11 @@ module peripherals(input             CLOCK_50,
             'h4001: leds[15:8] <= data_in;
             'h4002: leds[23:16] <= data_in;
             endcase
-         end
+         end else begin
+            case(addr)
+               'h4016: data_out <= {7'b0, controller1_data};
+            endcase
+         end   
       end
    end
 endmodule
@@ -184,7 +190,11 @@ module ricoh_2a03_synth(input           CLOCK_50,
                         output wire       VGA_BLANK,
                         output wire       VGA_HS,
                         output wire       VGA_VS,
-                        output wire       VGA_SYNC);
+                        output wire       VGA_SYNC,
+                        
+                        output wire       controller1_clk,
+                        output wire       controller1_strobe,
+                        input  wire       controller1_data);
 
    // generate clock
    reg [31:0]                             clk_div;
@@ -238,6 +248,11 @@ module ricoh_2a03_synth(input           CLOCK_50,
    hexled dat0((rw) ? data_from_mem[3:0] : data_from_cpu[3:0], HEX4);
    hexled dat1((rw) ? data_from_mem[7:4] : data_from_cpu[7:4], HEX5);
 
+   assign controller1_clk = !(rw && (addr == 'h4016));
+   
+   wire [2:0] addr4016w_bundle;
+   assign controller1_strobe = addr4016w_bundle[0];
+   
    cpu_2a03 cpu(.clock(pll_div),
                 .nreset(cpu_nrst),
                 .addr(addr),
@@ -248,7 +263,7 @@ module ricoh_2a03_synth(input           CLOCK_50,
                 .nirq(1'b1),
                 .naddr4016r(),
                 .naddr4017r(),
-                .addr4016w(),
+                .addr4016w(addr4016w_bundle),
                 .cycs(cyc_count));
 
    peripherals p(.CLOCK_50(CLOCK_50),
@@ -269,5 +284,7 @@ module ricoh_2a03_synth(input           CLOCK_50,
                  .VGA_SYNC(VGA_SYNC),
 
                  .keys(KEY[3:0]),
-                 .leds({LEDG, LEDR[15:0]}));
+                 .leds({LEDG, LEDR[15:0]}),
+                 
+                 .controller1_data(controller1_data));
 endmodule

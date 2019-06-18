@@ -1,17 +1,17 @@
 # -------------------------------------------------------------------------- #
 #
 # Copyright (C) 1991-2013 Altera Corporation
-# Your use of Altera Corporation's design tools, logic functions 
-# and other software and tools, and its AMPP partner logic 
-# functions, and any output files from any of the foregoing 
-# (including device programming or simulation files), and any 
-# associated documentation or information are expressly subject 
-# to the terms and conditions of the Altera Program License 
-# Subscription Agreement, Altera MegaCore Function License 
-# Agreement, or other applicable license agreement, including, 
-# without limitation, that your use is for the sole purpose of 
-# programming logic devices manufactured by Altera and sold by 
-# Altera or its authorized distributors.  Please refer to the 
+# Your use of Altera Corporation's design tools, logic functions
+# and other software and tools, and its AMPP partner logic
+# functions, and any output files from any of the foregoing
+# (including device programming or simulation files), and any
+# associated documentation or information are expressly subject
+# to the terms and conditions of the Altera Program License
+# Subscription Agreement, Altera MegaCore Function License
+# Agreement, or other applicable license agreement, including,
+# without limitation, that your use is for the sole purpose of
+# programming logic devices manufactured by Altera and sold by
+# Altera or its authorized distributors.  Please refer to the
 # applicable agreement for further details.
 #
 # -------------------------------------------------------------------------- #
@@ -403,11 +403,20 @@ set_location_assignment PIN_J22 -to GPIO_0[1]
 set_location_assignment PIN_E26 -to GPIO_0[2]
 set_location_assignment PIN_E25 -to GPIO_0[3]
 set_location_assignment PIN_F24 -to GPIO_0[4]
-set_location_assignment PIN_F23 -to GPIO_0[5]
+
+#set_location_assignment PIN_F23 -to GPIO_0[5]
+set_location_assignment PIN_F23 -to controller1_data
+
 set_location_assignment PIN_J21 -to GPIO_0[6]
-set_location_assignment PIN_J20 -to GPIO_0[7]
+
+#set_location_assignment PIN_J20 -to GPIO_0[7]
+set_location_assignment PIN_J20 -to controller1_strobe
+
 set_location_assignment PIN_F25 -to GPIO_0[8]
-set_location_assignment PIN_F26 -to GPIO_0[9]
+
+#set_location_assignment PIN_F26 -to GPIO_0[9]
+set_location_assignment PIN_F26 -to controller1_clk
+
 set_location_assignment PIN_N18 -to GPIO_0[10]
 set_location_assignment PIN_P18 -to GPIO_0[11]
 set_location_assignment PIN_G23 -to GPIO_0[12]
