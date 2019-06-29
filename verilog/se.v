@@ -26,6 +26,7 @@ module  se(
     parameter state_load_soam = 5'd0;
     parameter state_load_vram1 = 5'd1;
     parameter state_load_vram2 = 5'd2; 
+
     integer i; 
     reg [1:0] m, m_n;
     reg [5:0] n, n_n;
@@ -34,7 +35,7 @@ module  se(
    
     reg [4:0] state, state_n;
 
-    reg overflow_n, overflow, w, w_n;
+    reg overflow_n, overflow, w, w_n, rso, rso_n;
     wire sOAM_full, inverted_x, inverted_y;
     assign inverted_x = atr[6];
     assign inverted_y = atr[7];
@@ -66,7 +67,6 @@ module  se(
    
     assign in_range =  OAMDATA <= yCoord && OAMDATA + sprite_height > yCoord;
     assign observing_y = OAMADDR[1:0] == 0 && ~sOAM_full;
-
     //secondary OAM valid signal 
     reg [7:0] sValid_n, sValid;
  
@@ -79,7 +79,7 @@ module  se(
 
 
 
-    always @* begin
+    always@* begin
         activated_n = activated;
         counters_n = counters;
         lBMr_n = lBMr; 
@@ -138,13 +138,14 @@ module  se(
 
 
     always@* begin
+        rso_n = rso;
         sValid_n =sValid; 
-        m_n = m + sOAM_we;
+        m_n = m + {1'd0 ,(rso_n | rso)};
         n_n = n + {5'd0 ,((&m) & ~sOAM_full)};
-        sOAM_we = |sOAM_idx[1:0] & cycleNum[0];
+        sOAM_we = rso_n | rso;
         overflow_n = overflow;
         sOAM_idx_n = sOAM_idx +  {4'd0, sOAM_we};
-        
+             
         
         if (cycleNum == 'd1) begin
             sValid_n = 0;
@@ -156,8 +157,10 @@ module  se(
         end else if (( cycleNum > 'd64) && (cycleNum < 'd257)) begin
             if(observing_y && cycleNum[0] && in_range && ~sOAM_full) begin
                 sOAM_idx_n = sOAM_idx +'d1;
-                sOAM_we = 'b1;                
-                sValid_n[sOAM_idx[4:2]] = 'b1; 
+                rso_n = 1'b1; 
+                sValid_n[sOAM_idx[4:2]] = 'b1;
+            end else if (rso && cycleNum[0] && &m) begin
+                rso_n = 1'b1; 
             end else if ( observing_y && cycleNum[0] && ~in_range && ~sOAM_full) begin
                 n_n = n + 'd1;
             end else if ( observing_y && cycleNum[0] && in_range && sOAM_full) begin
@@ -165,7 +168,6 @@ module  se(
             end
         end else if (cycleNum > 'd256) begin 
         case(state) 
-
             state_load_soam: begin        
                 if (sOAM_idx[1:0] == 2'b11) begin
                     state_n = state_load_vram1;
@@ -254,6 +256,7 @@ module  se(
             activated <= 0;
             state <= 0;
             attrb <=0;
+            rso <= 0;
         end else begin
             state <= state_n;
             sValid <= sValid_n; 
@@ -273,6 +276,7 @@ module  se(
             counters <= counters_n;
             sprPrio <= sprPrio_n;
             sprv <= sprv_n; 
+            rso <= rso_n;
         end 
     end    
 
