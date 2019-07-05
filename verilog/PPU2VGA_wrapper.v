@@ -33,14 +33,14 @@ module  PPU2VGA_wrapper(
 
     //TODO: instantiate ram in here
 
-        simram pram(
-            .clock  (clock ),
-            .reset  (reset ),
-            .we     (cpu2ppu_wr),
-            .w_addr (cpu2ppu_addr),
-            .w_data (cpu2ppu_data),
-            .r_addr (ppu2vram_addr),
-            .r_data (ppu2vram_data));
+    simram pram(
+    .clock  (clock ),
+    .reset  (reset ),
+    .we     (cpu2ppu_wr),
+    .w_addr (cpu2ppu_addr),
+    .w_data (cpu2ppu_data),
+    .r_addr (ppu2vram_addr),
+    .r_data (ppu2vram_data));
 
 
     wire  [8:0] xIdx;
