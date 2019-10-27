@@ -19,7 +19,7 @@ module  mmio_vga(
                 );
 
 
-    vga_ram screen_memory(.address_a(rd_addr),
+    vga_ram screen_memory(.address_a(hacky_rd_addr),
                           .address_b(mod_addr[9:0]),
                           .clock(CLOCK_50),
                           .data_a(0),
@@ -29,7 +29,7 @@ module  mmio_vga(
                           .q_a(color_decider),
                           .q_b(vga_data));
 
-
+    wire 
 
 
     vga vga_driver(.clock(CLOCK_50),

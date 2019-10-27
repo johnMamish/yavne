@@ -183,11 +183,6 @@ module  PPU(
             next_vram = next_tvram;
             next_w = 0;
         end
-
-
-
-
-
     end
 
 
@@ -239,12 +234,7 @@ module  PPU(
             end
             attrSR[0] <= {attrL[0], attrSR[0][7:1]};
             attrSR[1] <= {attrL[1], attrSR[1][7:1]};
-
-
         end
     end
 
 endmodule
-
-
-
