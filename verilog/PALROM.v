@@ -1,17 +1,12 @@
-//Quick ROM spun up using gates; should use ROM on FPGA, but I was having some fun with vim+python scripting this. 
+//Quick ROM spun up using gates; should use ROM on FPGA.
 
 
 module  PALROM(
                 input [5:0] pal_in,
-                
-                
+
                 output [7:0] red,
                 output [7:0] green,
                 output [7:0] blue
-                
-                
-                 
-                
                 );
 
     

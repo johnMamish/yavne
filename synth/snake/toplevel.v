@@ -48,7 +48,7 @@ module peripherals(input             CLOCK_50,
                      .VGA_HS(VGA_HS),
                      .VGA_VS(VGA_VS),
                      .VGA_SYNC(VGA_SYNC),
-                     .rd_addr(),
+                     .rd_addr('d0),
                      .vga_data(data_from_vga));
 
 

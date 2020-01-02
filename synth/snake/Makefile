@@ -21,9 +21,9 @@ ifneq ($(words $(CURDIR)),1)
 endif
 
 
-TB := VSP_tb.cpp
+TB := snake_tb.cpp
 SRC := PPU.v PALROM.v simram.v se.v PPU2VGA_wrapper.v
-TOP := PPU2VGA_wrapper
+TOP := toplevel
 
 
 ######################################################################
@@ -43,12 +43,12 @@ VERILATOR = $(VERILATOR_ROOT)/bin/verilator
 endif
 
 VFLAGS =  --MMD -O3 --trace --cc
-PREFIX = c_ppu
+PREFIX = verilated_snake
 
 default:
 
 	@echo "-- VERILATE ----------------"
-	$(VERILATOR) $(VFLAGS) --exe -I$(SOURCE_DIR) --prefix $(PREFIX) --top-module $(TOP) $(SRC) $(TB) 
+	$(VERILATOR) $(VFLAGS) --exe -I$(SOURCE_DIR) $(TOP).v --prefix $(PREFIX) --top-module ricoh_2a03_synth $(TB) 
 	@echo "-- COMPILE -----------------"
 	$(MAKE) -j 4 -C obj_dir -f $(PREFIX).mk
 	

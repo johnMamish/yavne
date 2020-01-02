@@ -13,7 +13,8 @@ module  PPU2VGA_wrapper(
                     output [7:0]  ppu2cpu_data,
                     output [13:0] ppu2vram_addr,
                     output [7:0] ppu2vram_data,
-                    output [4:0] pal_index,
+                    output [4:0] bg_pal_index,
+                    output [4:0] se_pal_index,
                     //output wire  [8:0] xIdx,
                     //output wire  [8:0] yIdx
 
@@ -42,7 +43,7 @@ module  PPU2VGA_wrapper(
     .r_addr (ppu2vram_addr),
     .r_data (ppu2vram_data));
 
-
+    wire  [4:0] pal_idx; 
     wire  [8:0] xIdx;
     wire  [8:0] yIdx;
     wire  [9:0] x_addr;
@@ -74,7 +75,7 @@ module  PPU2VGA_wrapper(
             .ppu2cpu_data(ppu2cpu_data),
             .ppu2vram_addr(ppu2vram_addr),
             .ppu2vram_data(ppu2vram_data),
-            .pal_index(pal_index),
+            .pal_index(bg_pal_index),
             .xIdx(xIdx),
             .yIdx(yIdx)
         );
@@ -82,7 +83,7 @@ module  PPU2VGA_wrapper(
 
 
     PALROM tl(
-            .pal_in(read_val),
+            .pal_in({1'b0, bg_pal_index}), //TODO: fix CDC
             .red(vga_r),
             .green(vga_g),
             .blue(vga_b));
@@ -90,7 +91,6 @@ module  PPU2VGA_wrapper(
     vga vga_driver(.clock(CLOCK_50),
             .reset(reset),
             .vga_r({vga_r, vga_r[7:6]}),
-
             .vga_g({vga_g, vga_g[7:6]}),
             .vga_b({vga_b, vga_b[7:6]}),
             .vga_r_DAC(VGA_R),

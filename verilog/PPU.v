@@ -36,7 +36,7 @@ module  PPU(
     wire [13:0] ptAddr;
     wire hInc;
     wire [2:0] fineY;
-    wire [13:0] tileAddr, attrAddr;
+    wire [14:0] tileAddr, attrAddr;
 
 
     assign xIdx = cycleNum;
@@ -86,14 +86,14 @@ module  PPU(
     // NESdev isn't great for really describing the nametable; each entry is a pointer into the background
     // as far as I can tell.
     assign tileAddr = 'h2000 | (vram & 'h0fff);
-    assign attrAddr = 'h23c0 | (vram & 'h0c00) | (vram[11:4]  & 8'h38 ) | (vram[4:2] & 3'h7);
+    assign attrAddr = 'h23c0 | (vram & 'h0c00) | {4'h0, (vram[11:4]  & 8'h38 ), (vram[4:2] & 3'h7)};
 
 
 
 
     always @* begin
         next_tvram = tvram;
-        next_vram = vram + hInc;
+        next_vram = vram + {14'h0, hInc}; //there has to be a smarter way than this
         next_bgSR = bgSR;
         next_x = x;
         next_w = w;
@@ -121,8 +121,8 @@ module  PPU(
         endcase
 
         casez (ctr[2:1])
-            2'b00 : ppu2vram_addr = tileAddr;
-            2'b01 : ppu2vram_addr = attrAddr;
+            2'b00 : ppu2vram_addr = tileAddr[13:0];
+            2'b01 : ppu2vram_addr = attrAddr[13:0];
             2'b1? : ppu2vram_addr = ptAddr;
         endcase
 
